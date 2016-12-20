@@ -1,0 +1,2 @@
+# LocallyAdaptiveFactorProcess
+LAF model
