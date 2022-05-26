@@ -44,7 +44,7 @@ the script goes to ERROR at the end of the function and returns a 1. An
 example function is shown below.
 
 ```
-int exampleFunction(inputs,\*outputs){
+int exampleFunction(inputs,*outputs){
     // What the code does
     if(error_checking)  GOTO ERROR;
 
@@ -59,8 +59,8 @@ Then when I want to use this function by any other function I can do this
 as follows
 
 ```
-int outerFunction(inputs2,\*outputs2){
-    if(exampleFunction(inputs,\*outputs)) GOTO ERROR;
+int outerFunction(inputs2,*outputs2){
+    if(exampleFunction(inputs,*outputs)) GOTO ERROR;
 
 ERROR:
     printf("(Error in outerFunction)\n");
