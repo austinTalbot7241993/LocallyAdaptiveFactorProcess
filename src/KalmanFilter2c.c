@@ -392,9 +392,9 @@ int Kalman2c_writeOutputs(Kalman2 *self,char *baseName){
 	char strK[16] = "_K.txt";
 	char strFinv[16] = "_Finv.txt";
 	char outV[1024],outK[1024],outFinv[1024];
-	sprintf(outV,"%s%s",baseName,strV);
-	sprintf(outK,"%s%s",baseName,strK);
-	sprintf(outFinv,"%s%s",baseName,strFinv);
+	snprintf(outV,sizeof(outV),"%s%s",baseName,strV);
+	snprintf(outK,sizeof(outK),"%s%s",baseName,strK);
+	snprintf(outFinv,sizeof(outFinv),"%s%s",baseName,strFinv);
 
 	//Here we actually write out all the data
 	if(self==NULL)						GMERR(-1);

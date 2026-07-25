@@ -331,10 +331,9 @@ GMERRH("FSS2_writeAlpha",1);
 }
 
 int FSS2_writeOutputs(FSS2 *self,char *baseName){
-	FILE *fp;
 	char strA[16] = "_Alpha.txt";
 	char outA[1024];
-	sprintf(outA,"%s%s",baseName,strA);
+	snprintf(outA,sizeof(outA),"%s%s",baseName,strA);
 	if(self==NULL)					GMERR(-1);
 	if(FSS2_writeAlpha(self,outA))	GMERR(-11);
 	return(0);

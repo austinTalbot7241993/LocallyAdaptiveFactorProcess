@@ -803,8 +803,8 @@ int NGPmcmc_writeOutputs(NGPmcmc *self,char *baseName){
 	char outTheta[1024];
 	char strSig[16] = "_Sig.txt";
 	char outSig[1024];
-	sprintf(outTheta,"%s%s",baseName,strTheta);
-	sprintf(outSig,"%s%s",baseName,strSig);
+	snprintf(outTheta,sizeof(outTheta),"%s%s",baseName,strTheta);
+	snprintf(outSig,sizeof(outSig),"%s%s",baseName,strSig);
 	
 	printf("%s\n",outTheta);
 	printf("%s\n",outSig);

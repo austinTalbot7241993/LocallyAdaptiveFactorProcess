@@ -183,7 +183,7 @@ GMERRH("_NGPsample_writeAlphaSamples",1);
 int _NGPsample_writeOutputs(_NGPsample *self,char *baseName){
 	char strA[32] = "_AlphaSamples.txt";
 	char outA[1024];
-	sprintf(outA,"%s%s",baseName,strA);
+	snprintf(outA,sizeof(outA),"%s%s",baseName,strA);
 	if(self==NULL)							GMERR(-1);
 	if(_NGPsample_writeAlphaSamples(self,outA))	GMERR(-11);
 	return(0);
