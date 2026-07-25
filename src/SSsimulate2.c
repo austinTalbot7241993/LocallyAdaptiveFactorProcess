@@ -462,10 +462,9 @@ GMERRH("SSsimulate2_writeAlphaDraw",1);
 }
 
 int SSsimulate2_writeOutputs(SSsimulate2 *self,char *baseName){
-	FILE *fp;
 	char strA[16] = "_AlphaDraw.txt";
 	char outA[1024];
-	sprintf(outA,"%s%s",baseName,strA);
+	snprintf(outA,sizeof(outA),"%s%s",baseName,strA);
 	if(self==NULL)								GMERR(-1);
 	if(SSsimulate2_writeAlphaDraw(self,outA))	GMERR(-11);
 	return(0);

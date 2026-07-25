@@ -1,140 +1,86 @@
-# Locally Adaptive Factor Process
+# Locally Adaptive Factor Process (LAFP)
 
-This repository implements the model described in the paper
-"Locally adaptive factor processes for multivariate time series" located at
+![CI Status](https://github.com/austinTalbot7241993/LocallyAdaptiveFactorProcess/workflows/CI/badge.svg)
 
-https://www.jmlr.org/papers/volume15/durante14a/durante14a.pdf.
+High-performance C implementation of the model described in *"Locally adaptive factor processes for multivariate time series"* ([Durante & Dunson, JMLR 2014](https://www.jmlr.org/papers/volume15/durante14a/durante14a.pdf)).
 
-This project is implemented in C using the GSL library to provide an
-incredibly efficient and quick implementation. This code is approximately
-80x faster than implementations in Julia and about 200x faster than Numpy
-implementations.
+This repository provides state-space filtering, Fast State Smoothing (FSS), Durbin-Koopman simulation smoothing, and Markov chain Monte Carlo (MCMC) posterior sampling routines for non-Gaussian process factor models.
 
-## Building
+---
+
+## Performance & Design
+
+Higher-level dynamic languages (Python, R, Julia) incur significant garbage collection and allocation overhead when constructing matrices during iterative MCMC sampling. 
+
+This library avoids allocation overhead by pre-allocating state containers at initialization (`NGPmcmc_construct`). During the sampling iterations:
+- **Zero dynamic memory allocations/deallocations** occur inside the MCMC loop.
+- Matrix workspaces and GSL buffers are reused in-place across iterations.
+- Explicit memory deallocation is executed upon object destruction (`NGPmcmc_free`).
+
+---
+
+## Directory Structure
+
+```
+LocallyAdaptiveFactorProcess/
+├── include/lafp/       # Public C headers (NGPmcmc.h, SSsimulate2.h, KalmanFilter2.h, etc.)
+├── src/                # Library implementation (.c source files)
+├── examples/           # Command-line runners (run_ngpmcmc.c)
+├── tests/              # CTest test suite (test_ngpmcmc.c, test_heinkel.c)
+├── cmake/              # CMake config templates for find_package(lafp)
+└── .github/workflows/  # CI pipeline (Linux, macOS, Sanitizers, Pthreads)
+```
+
+---
+
+## Building & Installation
 
 ### Prerequisites
 
-| Dependency | macOS | Ubuntu / Debian |
+| Platform | Dependencies | Installation Command |
 |---|---|---|
-| CMake ≥ 3.16 | `brew install cmake` | `apt install cmake` |
-| GSL | `brew install gsl` | `apt install libgsl-dev` |
-| C compiler | Xcode CLT / `brew install gcc` | `apt install gcc` |
+| **macOS** | CMake, Ninja, GSL | `brew install cmake ninja gsl` |
+| **Ubuntu / Debian** | CMake, Ninja, GSL, GCC | `sudo apt install cmake ninja-build libgsl-dev gcc` |
 
-### Quickstart
+### Build Commands
 
 ```bash
 # Configure (Release build by default)
-cmake -B build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-# Build the library, tests, and examples
-cmake --build build -j$(nproc || sysctl -n hw.logicalcpu)
+# Build the library, examples, and test suite
+cmake --build build --parallel
 
-# Run the test suite
-ctest --test-dir build -V
-
-# Install to /usr/local (optional; requires sudo)
-sudo cmake --install build
-
-# Or install to a custom prefix (no sudo required)
-cmake --install build --prefix ~/.local
+# Execute unit and integration tests
+cd build && ctest --output-on-failure
 ```
 
-### Build targets
+### Sanitizer / Debug Build (ASan + UBSan)
 
-| Target | Description |
-|---|---|
-| `lafp_shared` | Shared library (`liblafp.so` / `liblafp.dylib`) |
-| `lafp_static` | Static library (`liblafp.a`) |
-| `run_ngpmcmc` | Command-line MCMC runner (see `examples/`) |
-| `test_ngpmcmc` | Integration test |
-| `test_heinkel` | Unit test for Hankel matrix utility |
-
-### Running the sampler
+To test with AddressSanitizer and UndefinedBehaviorSanitizer memory leak detection enabled:
 
 ```bash
-# run_ngpmcmc <observations_file> <timepoints_file> <Nt>
-./build/examples/run_ngpmcmc data/y.txt data/tobs.txt 1001
+cmake -S . -B build_asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+cmake --build build_asan
+cd build_asan && ctest --output-on-failure
 ```
 
-Output files (`Samps_*.txt`) are written to the working directory.
+---
 
+## CMake Integration (`find_package`)
 
-## Why is my code so much faster
+To use `lafp` in an external CMake project:
 
-Since most people are likely skeptical of the latter claim, as those 
-packages wrap the same Fortran code that I use, I will now explain why 
-my implementation is so much faster. Memory allocation is incredibly painful
-and requires keeping track of allocations and frees. Higher order languages
-such as Python and Julia "free" us from these inconveniences by 
-automatically allocating and freeing memory as needed. This introduces 
-overhead, but this is generally ignored as implementing methods in these 
-higher order languages is so much quicker than the explicit memory 
-management required by C. And it is assumed that memory allocation is 
-insignificant compared to the time performing the actual computation of 
-interest.
+```cmake
+find_package(lafp REQUIRED)
 
-I avoid all overhead with allocations by explicitly managing the memory
-in this code. At the beginning of the script, all variables needed at 
-every stage of computation are allocated. These addresses are then reused 
-by the sampler at every stage. At the end of sampling the memory is freed.
-During the entire period of sampling no allocations or frees are 
-performed. So if the sampler were run for 1 iteration we would observe 0 
-performance gain. However, with many iterations we asymptotically ignore 
-any time spent on allocation, resulting in the incredible speedups claimed.
-
-## Coding style
-
-This implementation of C uses a very distinctive coding style. All error 
-handling is done via GOTOs, which are the only acceptable usage of GOTOs 
-in my opinion. Every method returns a 0 if succesful and any outputs of 
-the method are passed via reference on the inputs. If an error is detected
-the script goes to ERROR at the end of the function and returns a 1. An 
-example function is shown below.
-
-```
-int exampleFunction(inputs,*outputs){
-    // What the code does
-    if(error_checking)  GOTO ERROR;
-
-    return(0);
-ERROR:
-    printf("(Error in exampleFunction)\n");
-    return(1);
-}
+add_executable(my_app main.c)
+target_link_libraries(my_app PRIVATE lafp::lafp_shared)
 ```
 
-Then when I want to use this function by any other function I can do this 
-as follows
+---
 
-```
-int outerFunction(inputs2,*outputs2){
-    if(exampleFunction(inputs,*outputs)) GOTO ERROR;
+## License
 
-ERROR:
-    printf("(Error in outerFunction)\n");
-    return(1);
-}
-```
-
-As any expression within an if statement is evaluated, in a single line I 
-can call the function and conveniently check for errors. Since C is so low
-level, this if statement is basically a single FLOP and insignificant 
-computation. So if I have an error in any function I get a stack of 
-messages 
-```
-(Error in function1)
-(Error in function2)
-(Error in function3)
-(Error in function4)
-(Error in function5)
-```
-which makes debugging very easy. In the code this is not readily apparent 
-because I use macros so that any errors return (1) the function name, (2)
-a unique error code, and (3) the line number of the error. But the principle
-is the same.
-
-Unfortunately, when I coded this I believed the code was self-documenting.
-I was clearly mistaken, and I will hopefully soon return to comment the 
-code. If you are planning to use this code and are confused, please 
-contact me at firstname . lastname 1993 @ gmail.
-
+This software is released under the MIT License.

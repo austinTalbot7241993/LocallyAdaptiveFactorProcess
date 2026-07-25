@@ -1653,18 +1653,17 @@ GMERRH("NGPlaf2_writeSigmaOut",1);
 
 int NGPlaf2_writeOutputs(NGPlaf2 *self,char *baseName){
 	//Here we have to make all the output names
-	FILE *fp;
 	char strK[16] = "_Ksi.txt";
 	char strP[16] = "_Psi.txt";
 	char strY[16] = "_yhat.txt";
 	char strM[16] = "_Mu.txt";
 	char strS[16] = "_Sigma0.txt";
 	char outK[1024],outP[1024],outY[1024],outM[1024],outS[1024];
-	sprintf(outK,"%s%s",baseName,strK);
-	sprintf(outP,"%s%s",baseName,strP);
-	sprintf(outY,"%s%s",baseName,strY);
-	sprintf(outM,"%s%s",baseName,strM);
-	sprintf(outS,"%s%s",baseName,strS);
+	snprintf(outK,sizeof(outK),"%s%s",baseName,strK);
+	snprintf(outP,sizeof(outP),"%s%s",baseName,strP);
+	snprintf(outY,sizeof(outY),"%s%s",baseName,strY);
+	snprintf(outM,sizeof(outM),"%s%s",baseName,strM);
+	snprintf(outS,sizeof(outS),"%s%s",baseName,strS);
 
 	//Here we actually write out all the data
 	if(self==NULL)							GMERR(-1);
