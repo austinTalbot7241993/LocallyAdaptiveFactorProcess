@@ -7,7 +7,7 @@ name = "lafp"
 version = "1.0.0"
 description = "Python bindings for Locally Adaptive Factor Process (LAFP) MCMC sampler"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "LAFP Contributors"}
