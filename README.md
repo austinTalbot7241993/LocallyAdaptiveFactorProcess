@@ -24,12 +24,44 @@ This library avoids allocation overhead by pre-allocating state containers at in
 ```
 LocallyAdaptiveFactorProcess/
 ├── include/lafp/       # Public C headers (NGPmcmc.h, SSsimulate2.h, KalmanFilter2.h, etc.)
-├── src/                # Library implementation (.c source files)
+├── src/                # Library implementation (.c source files & lafp-fit CLI)
 ├── examples/           # Command-line runners (run_ngpmcmc.c)
-├── tests/              # CTest test suite (test_ngpmcmc.c, test_heinkel.c)
+├── tests/              # CTest test suite (test_ngpmcmc, test_kalman, test_complex, test_cli)
 ├── cmake/              # CMake config templates for find_package(lafp)
 └── .github/workflows/  # CI pipeline (Linux, macOS, Sanitizers, Pthreads)
 ```
+
+---
+
+## Command-Line Tool (`lafp-fit`)
+
+The repository includes a standalone CLI application (`lafp-fit`) for running MCMC model fitting directly from data files.
+
+```bash
+# Basic Usage:
+lafp-fit -y <y_file> -t <tobs_file> [options]
+
+# Example: Run 5000 iterations and output files with prefix 'my_results'
+lafp-fit -y data/y.txt -t data/tobs.txt -n 5000 -o my_results
+
+# Display help menu and available hyperparameter options:
+lafp-fit --help
+```
+
+### CLI Options Summary
+
+| Flag | Argument | Description | Default |
+|---|---|---|---|
+| `-y, --input-y` | `<path>` | Path to observation matrix file | **Required** |
+| `-t, --input-t` | `<path>` | Path to time observations file | **Required** |
+| `-n, --niter` | `<int>` | Total MCMC sampling iterations | `2000` |
+| `-o, --out-prefix` | `<str>` | Prefix for posterior output files | `lafp_out` |
+| `--nt` | `<int>` | Number of time points | Auto-detected |
+| `--sig-u` | `<float>` | State process noise scale | `1000.0` |
+| `--sig-a` | `<float>` | Derivative process noise scale | `5.0` |
+| `--sig-eps` | `<float>` | Observation noise std dev | `2.0` |
+| `-a, --prior-a` | `<float>` | Inverse-Gamma prior shape parameter | `1.0` |
+| `-b, --prior-b` | `<float>` | Inverse-Gamma prior scale parameter | `1.0` |
 
 ---
 
@@ -48,7 +80,7 @@ LocallyAdaptiveFactorProcess/
 # Configure (Release build by default)
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-# Build the library, examples, and test suite
+# Build the library, CLI tool, examples, and test suite
 cmake --build build --parallel
 
 # Execute unit and integration tests
