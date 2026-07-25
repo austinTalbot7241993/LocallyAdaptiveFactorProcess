@@ -144,8 +144,8 @@ int NGP_assemble_matrices(int Np,int Ns,gsl_vector *delta,double *sigEps,gsl_vec
 	int Nr,t;
 	int Nm = 3*Ns;
 	gsl_matrix *RR,*TT,*QQ,*HH;
-	gsl_vector *sigU2 = gsl_vector_alloc(sigU->size);
-	gsl_vector *sigA2 = gsl_vector_alloc(sigA->size);
+	gsl_vector *sigU2;
+	gsl_vector *sigA2;
 	if(approx)
 		Nr = 2*Ns;
 	else
@@ -206,6 +206,10 @@ int NGP_assemble_matrices(int Np,int Ns,gsl_vector *delta,double *sigEps,gsl_vec
 	//Z=Z(Np,Ns)
 	if(NGP_Z(Np,Ns,Z))										GMERR(-71);
 
+	gsl_matrix_free(RR);
+	gsl_matrix_free(HH);
+	gsl_matrix_free(TT);
+	gsl_matrix_free(QQ);
 	gsl_vector_free(sigA2);
 	gsl_vector_free(sigU2);
 
