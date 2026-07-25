@@ -14,3 +14,21 @@
 *.map
 *.sym
 
+# CMake build artifacts
+/build/
+/build_asan/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+
+# MCMC output files written by tests/examples at runtime
+tests/*_Sig.txt
+tests/*_Theta.txt
+examples/*.txt
+!**/CMakeLists.txt
+.cache/
+
+
