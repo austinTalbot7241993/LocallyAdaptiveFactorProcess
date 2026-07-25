@@ -44,6 +44,16 @@ add_test(
 )
 set_tests_properties(test_matrix_utils PROPERTIES LABELS "unit")
 
+# ── test_complex (Unit Test) ──────────────────────────────────────────────────
+add_executable(test_complex test_complex.c)
+target_link_libraries(test_complex PRIVATE lafp_shared)
+
+add_test(
+    NAME    test_complex
+    COMMAND test_complex
+)
+set_tests_properties(test_complex PROPERTIES LABELS "unit")
+
 # ── macOS ad-hoc code signing for CTest targets ──────────────────────────────
 if(APPLE)
     add_custom_command(TARGET test_ngpmcmc POST_BUILD
@@ -57,5 +67,8 @@ if(APPLE)
     )
     add_custom_command(TARGET test_matrix_utils POST_BUILD
         COMMAND codesign --force --sign - $<TARGET_FILE:test_matrix_utils>
+    )
+    add_custom_command(TARGET test_complex POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:test_complex>
     )
 endif()

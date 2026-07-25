@@ -29,20 +29,18 @@ else()
     set(SSSIM_SRC src/SSsimulate2.c)
 endif()
 
-# NOTE: mdarray_complex.c, KalmanFilter2c.c, and fastStateSmoother2c.c are
-# excluded from the build. They originate from the experimental Code/Complex/
-# subdirectory, contain pre-existing declaration/definition mismatches, and
-# are not referenced by any MCMC code. They require dedicated fixes before
-# being added back here.
 set(LAFP_SOURCES
     src/gmlib.c
     src/mdarray.c
+    src/mdarray_complex.c
     src/matrix_utils.c
     # src/mvnorm.c is an exact duplicate of distributions.c (same functions,
     # same signatures). Include only one to avoid duplicate symbol errors.
     src/distributions.c
     src/KalmanFilter2.c
+    src/KalmanFilter2c.c
     src/fastStateSmoother2.c
+    src/fastStateSmoother2c.c
     ${SSSIM_SRC}
     src/NGPtools2.c
     src/NGPsample2.c

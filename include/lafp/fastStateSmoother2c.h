@@ -5,8 +5,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_matrix_complex.h>
 #include <gsl/gsl_complex.h>
+#include <gsl/gsl_matrix_complex_double.h>
+#include <gsl/gsl_vector_complex_double.h>
 #include <lafp/mdarray_complex.h>
 
 typedef struct{
