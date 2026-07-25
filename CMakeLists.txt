@@ -66,6 +66,13 @@ target_link_libraries(lafp_shared
 
 target_compile_options(lafp_shared PRIVATE -O3 -Wall -Wextra)
 
+if(APPLE)
+    add_custom_command(TARGET lafp_shared POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:lafp_shared>
+        COMMENT "Ad-hoc signing liblafp.dylib"
+    )
+endif()
+
 # ── Static library ─────────────────────────────────────────────────────────────
 add_library(lafp_static STATIC ${LAFP_SOURCES})
 set_target_properties(lafp_static PROPERTIES OUTPUT_NAME "lafp")

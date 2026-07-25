@@ -25,3 +25,12 @@ add_test(
     COMMAND test_heinkel
 )
 set_tests_properties(test_heinkel PROPERTIES LABELS "unit")
+
+if(APPLE)
+    add_custom_command(TARGET test_ngpmcmc POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:test_ngpmcmc>
+    )
+    add_custom_command(TARGET test_heinkel POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:test_heinkel>
+    )
+endif()
