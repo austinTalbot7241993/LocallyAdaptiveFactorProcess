@@ -19,12 +19,55 @@ This library avoids allocation overhead by pre-allocating state containers at in
 
 ---
 
+## Python Package (`lafp`)
+
+The repository includes a native Python package featuring a scikit-learn compatible estimator API (`LAFPFactorModel`).
+
+### Installation
+
+```bash
+# Build the C shared library first:
+cmake -S . -B build && cmake --build build
+
+# Install the Python package in editable mode:
+pip install -e .
+```
+
+### Python Quickstart
+
+```python
+import numpy as np
+from lafp import LAFPFactorModel
+
+# 1. Prepare time vector and observation matrix
+tobs = np.linspace(0.0, 10.0, 100)
+y = np.sin(tobs) + 0.1 * np.random.randn(100)
+
+# 2. Initialize scikit-learn style estimator
+model = LAFPFactorModel(
+    n_iter=2000,
+    sig_u=1000.0,
+    sig_a=5.0,
+    sig_eps=2.0
+)
+
+# 3. Fit MCMC sampler
+model.fit(y, tobs)
+
+# 4. Access posterior samples as NumPy arrays
+print("Posterior state draws shape :", model.theta_.shape)  # (2000, 100, 3)
+print("Posterior scale draws shape :", model.sig_.shape)    # (2000, 3)
+```
+
+---
+
 ## Directory Structure
 
 ```
 LocallyAdaptiveFactorProcess/
 ├── include/lafp/       # Public C headers (NGPmcmc.h, SSsimulate2.h, KalmanFilter2.h, etc.)
 ├── src/                # Library implementation (.c source files & lafp-fit CLI)
+├── python/             # Python package (lafp/ model.py, _bindings.py, tests/)
 ├── examples/           # Command-line runners (run_ngpmcmc.c)
 ├── tests/              # CTest test suite (test_ngpmcmc, test_kalman, test_complex, test_cli)
 ├── cmake/              # CMake config templates for find_package(lafp)
