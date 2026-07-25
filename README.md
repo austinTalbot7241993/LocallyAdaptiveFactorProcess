@@ -33,35 +33,75 @@ LocallyAdaptiveFactorProcess/
 
 ---
 
-## Command-Line Tool (`lafp-fit`)
+## Command-Line Interface (`lafp-fit`)
 
-The repository includes a standalone CLI application (`lafp-fit`) for running MCMC model fitting directly from data files.
+The repository includes a standalone CLI executable (`lafp-fit`) for running MCMC model fitting directly from tabular text files without writing C code.
+
+### Quickstart Example
+
+After building the project, run `lafp-fit` on sample data:
 
 ```bash
-# Basic Usage:
-lafp-fit -y <y_file> -t <tobs_file> [options]
+# Basic run with auto-detected length:
+./build/lafp-fit -y tests/y.txt -t tests/tobs.txt -n 2000 -o my_experiment
 
-# Example: Run 5000 iterations and output files with prefix 'my_results'
-lafp-fit -y data/y.txt -t data/tobs.txt -n 5000 -o my_results
-
-# Display help menu and available hyperparameter options:
-lafp-fit --help
+# Output printed to terminal:
+# [LAFP-FIT] Starting MCMC Fit...
+#   Input y      : tests/y.txt
+#   Input tobs   : tests/tobs.txt
+#   Time Points  : 1001
+#   Iterations   : 2000
+#   Out Prefix   : my_experiment
+# [LAFP-FIT] Executing MCMC sampling iterations...
+# [LAFP-FIT] Exporting output files with prefix 'my_experiment'...
+# [LAFP-FIT] MCMC Fit Completed Successfully.
 ```
 
-### CLI Options Summary
+The command generates two posterior output text files:
+- `my_experiment_Theta.txt`: Posterior state estimates matrix ($N_{iter} \times N_t \times 3$)
+- `my_experiment_Sig.txt`: Posterior process scale parameter draws ($N_{iter} \times 3$)
 
-| Flag | Argument | Description | Default |
+---
+
+### Customizing Priors and Initial Values
+
+Custom noise scales and Inverse-Gamma prior parameters can be passed directly via command-line arguments:
+
+```bash
+./build/lafp-fit \
+  --input-y tests/y.txt \
+  --input-t tests/tobs.txt \
+  --niter 5000 \
+  --out-prefix run_prior_test \
+  --sig-u 500.0 \
+  --sig-a 2.5 \
+  --sig-eps 1.5 \
+  --sig-mu 2.0 \
+  --sig-alpha 2.0 \
+  --prior-a 2.0 \
+  --prior-b 1.0
+```
+
+---
+
+### CLI Reference Guide
+
+| Option | Long Flag | Description | Default Value |
 |---|---|---|---|
-| `-y, --input-y` | `<path>` | Path to observation matrix file | **Required** |
-| `-t, --input-t` | `<path>` | Path to time observations file | **Required** |
-| `-n, --niter` | `<int>` | Total MCMC sampling iterations | `2000` |
-| `-o, --out-prefix` | `<str>` | Prefix for posterior output files | `lafp_out` |
-| `--nt` | `<int>` | Number of time points | Auto-detected |
-| `--sig-u` | `<float>` | State process noise scale | `1000.0` |
-| `--sig-a` | `<float>` | Derivative process noise scale | `5.0` |
-| `--sig-eps` | `<float>` | Observation noise std dev | `2.0` |
-| `-a, --prior-a` | `<float>` | Inverse-Gamma prior shape parameter | `1.0` |
-| `-b, --prior-b` | `<float>` | Inverse-Gamma prior scale parameter | `1.0` |
+| `-y` | `--input-y <path>` | Path to observation matrix file ($y$) | **Required** |
+| `-t` | `--input-t <path>` | Path to time vector file ($t_{obs}$) | **Required** |
+| `-n` | `--niter <int>` | Total MCMC sampling iterations | `2000` |
+| `-o` | `--out-prefix <str>` | Output filename prefix | `lafp_out` |
+| | `--nt <int>` | Number of time points | Auto-detected |
+| | `--sig-u <val>` | Initial state noise scale ($\sigma_U$) | `1000.0` |
+| | `--sig-a <val>` | Initial derivative noise scale ($\sigma_A$) | `5.0` |
+| | `--sig-eps <val>` | Initial observation noise ($\sigma_{\epsilon}$) | `2.0` |
+| | `--sig-mu <val>` | Prior scale for mean state | `4.0` |
+| | `--sig-alpha <val>` | Prior scale for derivative state | `4.0` |
+| `-a` | `--prior-a <val>` | Inverse-Gamma prior shape parameter ($a$) | `1.0` |
+| `-b` | `--prior-b <val>` | Inverse-Gamma prior scale parameter ($b$) | `1.0` |
+| `-h` | `--help` | Display usage help menu and exit | |
+| `-v` | `--version` | Display version information (`1.0.0`) | |
 
 ---
 
@@ -71,16 +111,16 @@ lafp-fit --help
 
 | Platform | Dependencies | Installation Command |
 |---|---|---|
-| **macOS** | CMake, Ninja, GSL | `brew install cmake ninja gsl` |
-| **Ubuntu / Debian** | CMake, Ninja, GSL, GCC | `sudo apt install cmake ninja-build libgsl-dev gcc` |
+| **macOS** | CMake, GSL | `brew install cmake gsl` |
+| **Ubuntu / Debian** | CMake, GSL, GCC | `sudo apt install cmake libgsl-dev gcc` |
 
 ### Build Commands
 
 ```bash
-# Configure (Release build by default)
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+# Configure build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# Build the library, CLI tool, examples, and test suite
+# Build library, lafp-fit CLI, and test suite
 cmake --build build --parallel
 
 # Execute unit and integration tests
@@ -92,7 +132,7 @@ cd build && ctest --output-on-failure
 To test with AddressSanitizer and UndefinedBehaviorSanitizer memory leak detection enabled:
 
 ```bash
-cmake -S . -B build_asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+cmake -S . -B build_asan -DCMAKE_BUILD_TYPE=Debug \
       -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
 cmake --build build_asan
 cd build_asan && ctest --output-on-failure
@@ -102,7 +142,7 @@ cd build_asan && ctest --output-on-failure
 
 ## CMake Integration (`find_package`)
 
-To use `lafp` in an external CMake project:
+To use `lafp` as a library in an external CMake project:
 
 ```cmake
 find_package(lafp REQUIRED)
