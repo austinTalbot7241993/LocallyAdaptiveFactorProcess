@@ -31,4 +31,9 @@ examples/*.txt
 !**/CMakeLists.txt
 .cache/
 
-
+# Python build & virtual environment artifacts
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
