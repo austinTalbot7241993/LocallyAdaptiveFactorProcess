@@ -3,10 +3,10 @@
 
 /**
  * @file SSsimulate2.h
- * @brief State-Space Simulation Smoother algorithm (Durbin & Koopman simulation smoother).
+ * @brief State-Space Simulation Smoother module (Durbin & Koopman simulation smoother).
  *
- * Provides routines for sampling disturbance vectors and state vectors in state-space
- * models using paired Kalman filtering and Fast State Smoothing (FSS).
+ * Implements the simulation smoother algorithm for state-space models using paired
+ * Kalman filtering and Fast State Smoothing (FSS).
  */
 
 #include <gsl/gsl_matrix.h>
@@ -18,10 +18,6 @@
 #include <lafp/fastStateSmoother2.h>
 #include <lafp/KalmanFilter2.h>
 
-/**
- * @struct KFS
- * @brief Pair container for Kalman Filter and Fast State Smoother handles.
- */
 typedef struct {
     Kalman2 *kalman1;
     FSS2 *fss1;
@@ -104,18 +100,60 @@ int KFS_operations(KFS *self);
  ***************************************/
 
 /**
- * @brief Allocates a new SSsimulate2 object.
- * @return Pointer to allocated instance or NULL.
+ * Instantiate an uninitialized SSsimulate2 simulation smoother instance.
+ *
+ * Returns
+ * -------
+ * SSsimulate2 *
+ *     Pointer to newly allocated SSsimulate2 instance, or NULL on allocation failure.
  */
 SSsimulate2 * SSsimulate2_New(void);
 
 /**
- * @brief Initializes fields of an SSsimulate2 object to zero/NULL.
+ * Initialize fields of an SSsimulate2 instance to zero/NULL.
+ *
+ * Parameters
+ * ----------
+ * self : SSsimulate2 *
+ *     Target SSsimulate2 instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int SSsimulate2_init(SSsimulate2 *self);
 
 /**
- * @brief Configures SSsimulate2 instance with state-space model matrices.
+ * Configure and pre-allocate workspace for state-space simulation smoothing.
+ *
+ * Parameters
+ * ----------
+ * self : SSsimulate2 *
+ *     Target simulation smoother instance.
+ * y : gsl_matrix *
+ *     Observation matrix of shape (Nt, Np).
+ * a_init : gsl_vector *
+ *     Initial state prior mean vector of shape (Nm,).
+ * P_init : gsl_matrix *
+ *     Initial state prior covariance matrix of shape (Nm, Nm).
+ * Z : marray3d *
+ *     Observation design matrix array of shape (Nt, Np, Nm) or (1, Np, Nm).
+ * H : marray3d *
+ *     Observation noise covariance array of shape (Nt, Np, Np) or (1, Np, Np).
+ * T : marray3d *
+ *     State transition matrix array of shape (Nt, Nm, Nm) or (1, Nm, Nm).
+ * R : marray3d *
+ *     State disturbance selection matrix array of shape (Nt, Nm, Nr) or (1, Nm, Nr).
+ * Q : marray3d *
+ *     State disturbance covariance matrix array of shape (Nt, Nr, Nr) or (1, Nr, Nr).
+ * alpha_draw : gsl_matrix *
+ *     Output matrix of shape (Nt, Nm) where the drawn state trajectory will be written.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int SSsimulate2_construct(SSsimulate2 *self, gsl_matrix *y, gsl_vector *a_init,
                           gsl_matrix *P_init, marray3d *Z, marray3d *H,
@@ -123,12 +161,39 @@ int SSsimulate2_construct(SSsimulate2 *self, gsl_matrix *y, gsl_vector *a_init,
                           gsl_matrix *alpha_draw);
 
 /**
- * @brief Frees all allocated memory in an SSsimulate2 instance and frees the struct.
+ * Free all internal matrix workspaces and deallocate the SSsimulate2 struct.
+ *
+ * Parameters
+ * ----------
+ * self : SSsimulate2 *
+ *     Target simulation smoother instance pointer to release.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int SSsimulate2_free(SSsimulate2 *self);
 
 /**
- * @brief Runs simulation smoother pass to sample state trajectory alpha_draw.
+ * Run Durbin-Koopman simulation smoother pass to sample state trajectory.
+ *
+ * Parameters
+ * ----------
+ * self : SSsimulate2 *
+ *     Configured SSsimulate2 instance pointer.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ *
+ * Notes
+ * -----
+ * Executes two paired passes of Kalman filtering and Fast State Smoothing (FSS):
+ * 1. Simulates pseudo-random state trajectories alpha+ and observations y+.
+ * 2. Filters y+ and original observations y using dual Kalman filters.
+ * 3. Smooths states via dual Fast State Smoothers to construct exact draw alpha_draw.
  */
 int SSsimulate2_operations(SSsimulate2 *self);
 
@@ -137,7 +202,33 @@ int SSsimulate2_operations(SSsimulate2 *self);
  ****************************************/
 
 /**
- * @brief One-shot function to allocate, run simulation smoother, and free resources.
+ * One-shot function to allocate, run simulation smoother, and free resources.
+ *
+ * Parameters
+ * ----------
+ * y : gsl_matrix *
+ *     Observation matrix of shape (Nt, Np).
+ * a_init : gsl_vector *
+ *     Initial state prior mean of shape (Nm,).
+ * P_init : gsl_matrix *
+ *     Initial state prior covariance of shape (Nm, Nm).
+ * Z : marray3d *
+ *     Observation design matrix array.
+ * H : marray3d *
+ *     Observation noise covariance array.
+ * T : marray3d *
+ *     State transition matrix array.
+ * R : marray3d *
+ *     State disturbance selection matrix array.
+ * Q : marray3d *
+ *     State disturbance covariance array.
+ * alpha_draw : gsl_matrix *
+ *     Output state trajectory matrix of shape (Nt, Nm).
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int SSsimulate2_Simulate(gsl_matrix *y, gsl_vector *a_init, gsl_matrix *P_init,
                          marray3d *Z, marray3d *H, marray3d *T, marray3d *R,

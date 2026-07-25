@@ -3,11 +3,10 @@
 
 /**
  * @file NGPmcmc.h
- * @brief Non-Gaussian Process (NGP) MCMC sampler.
+ * @brief Non-Gaussian Process (NGP) MCMC sampler module.
  *
  * Implements the Markov chain Monte Carlo (MCMC) algorithm for the locally
- * adaptive non-Gaussian process state-space model. Provides lifecycle functions,
- * matrix assembly routines, posterior parameter sampling, and file export helpers.
+ * adaptive non-Gaussian process state-space model described in Durante & Dunson (2014).
  */
 
 #include <stdio.h>
@@ -134,41 +133,87 @@ typedef struct {
  ***************************************/
 
 /**
- * @brief Allocates a new NGPmcmc instance.
- * @return Pointer to allocated NGPmcmc object, or NULL on failure.
+ * Instantiate an uninitialized NGPmcmc sampler.
+ *
+ * Returns
+ * -------
+ * NGPmcmc *
+ *     Pointer to newly allocated NGPmcmc instance, or NULL on allocation failure.
  */
 NGPmcmc * NGPmcmc_New(void);
 
 /**
- * @brief Initializes fields of an NGPmcmc instance to zero/NULL.
- * @param self Pointer to target NGPmcmc object.
- * @return 0 on success, non-zero on error.
+ * Initialize fields of an NGPmcmc sampler struct to zero/NULL.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Target NGPmcmc instance pointer.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int NGPmcmc_init(NGPmcmc *self);
 
 /**
- * @brief Frees all allocated memory within an NGPmcmc object and frees the struct itself.
- * @param s Pointer to target NGPmcmc object.
- * @return 0 on success, non-zero on error.
+ * Free all internal matrix workspaces and deallocate the NGPmcmc sampler struct.
+ *
+ * Parameters
+ * ----------
+ * s : NGPmcmc *
+ *     Target NGPmcmc instance pointer to release.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int NGPmcmc_free(NGPmcmc *s);
 
 /**
- * @brief Configures NGPmcmc sampler with observation data, iterations, and hyperparameters.
- * @param self Sampler instance pointer.
- * @param y Observation matrix (Nt x 1).
- * @param tobs Timestamps vector (Nt).
- * @param Niter Total sampling iterations.
- * @param sigU Process noise scale for states.
- * @param sigA Process noise scale for derivatives.
- * @param sigEps Initial observation noise standard deviation.
- * @param sigMu Prior scale for mean state components.
- * @param sigAlph Prior scale for derivative state components.
- * @param a Inverse-Gamma prior shape parameter.
- * @param b Inverse-Gamma prior scale parameter.
- * @param th Output 3D array for state samples (Niter x Nt x 3).
- * @param sig Output matrix for scale parameter samples (Niter x 3).
- * @return 0 on success, non-zero on error.
+ * Configure and pre-allocate workspaces for NGP MCMC model fitting.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Target NGPmcmc sampler instance.
+ * y : gsl_matrix *
+ *     Observation matrix of shape (Nt, 1) or (Nt, Np).
+ * tobs : gsl_vector *
+ *     Timestamps vector of shape (Nt,).
+ * Niter : int
+ *     Total number of MCMC sampling iterations to execute.
+ * sigU : gsl_vector *
+ *     Initial process scale parameter vector for state components.
+ * sigA : gsl_vector *
+ *     Initial process scale parameter vector for derivative components.
+ * sigEps : double
+ *     Initial observation noise standard deviation.
+ * sigMu : double
+ *     Prior scale standard deviation for mean state components.
+ * sigAlph : double
+ *     Prior scale standard deviation for derivative state components.
+ * a : double
+ *     Inverse-Gamma prior shape parameter for noise variance.
+ * b : double
+ *     Inverse-Gamma prior scale parameter for noise variance.
+ * th : marray3d *
+ *     Output 3D array of shape (Niter, Nt, 3) storing posterior state draws.
+ * sig : gsl_matrix *
+ *     Output matrix of shape (Niter, 3) storing posterior scale draws.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ *
+ * Notes
+ * -----
+ * Memory allocations for internal matrix workspaces occur exclusively inside
+ * NGPmcmc_construct. No dynamic memory allocation or free occurs during the
+ * main MCMC loop (NGPmcmc_operations).
  */
 int NGPmcmc_construct(NGPmcmc *self, gsl_matrix *y, gsl_vector *tobs, int Niter,
                       gsl_vector *sigU, gsl_vector *sigA, double sigEps,
@@ -176,9 +221,24 @@ int NGPmcmc_construct(NGPmcmc *self, gsl_matrix *y, gsl_vector *tobs, int Niter,
                       marray3d *th, gsl_matrix *sig);
 
 /**
- * @brief Runs the complete MCMC sampling loop over burn-in and saved iterations.
- * @param self Configured NGPmcmc sampler instance.
- * @return 0 on success, non-zero on error.
+ * Run the complete MCMC sampling loop over burn-in and saved iterations.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Configured NGPmcmc sampler instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ *
+ * Notes
+ * -----
+ * Executes Niter sampling loops. Each iteration performs sequential draws:
+ * 1. NGPmcmc_drawState() - Durbin-Koopman simulation smoother.
+ * 2. NGPmcmc_drawSigEps() - Inverse-Gamma draw for observation variance.
+ * 3. NGPmcmc_drawSigs() - Metropolis-Hastings update for process noise scales.
  */
 int NGPmcmc_operations(NGPmcmc *self);
 
@@ -186,16 +246,64 @@ int NGPmcmc_operations(NGPmcmc *self);
  * Sampling methods within operations *
  *************************************/
 
-/** @brief Draws state vectors via state space smoothing simulation. */
+/**
+ * Draw state trajectory theta from conditional posterior via simulation smoother.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Configured NGPmcmc sampler instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ */
 int NGPmcmc_drawState(NGPmcmc *self);
 
-/** @brief Draws observation noise variance sigEps from Inverse-Gamma conditional posterior. */
+/**
+ * Draw observation noise standard deviation sigEps from Inverse-Gamma posterior.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Configured NGPmcmc sampler instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ */
 int NGPmcmc_drawSigEps(NGPmcmc *self);
 
-/** @brief Computes Metropolis-Hastings acceptance probability for process noise candidate. */
+/**
+ * Compute Metropolis-Hastings acceptance probability for proposed process noise candidate.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Configured NGPmcmc sampler instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ */
 int NGPmcmc_calc_acceptance_prob(NGPmcmc *self);
 
-/** @brief Proposes and updates process noise scale parameters sigU and sigA. */
+/**
+ * Propose and update process noise scale parameters sigU and sigA via Metropolis-Hastings.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Configured NGPmcmc sampler instance.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ */
 int NGPmcmc_drawSigs(NGPmcmc *self);
 
 /****************************************
@@ -203,7 +311,39 @@ int NGPmcmc_drawSigs(NGPmcmc *self);
  ****************************************/
 
 /**
- * @brief Convenience one-shot function to allocate, run, export, and free NGP MCMC sampling.
+ * One-shot function to allocate, configure, run MCMC, export results, and free resources.
+ *
+ * Parameters
+ * ----------
+ * y : gsl_matrix *
+ *     Observation matrix of shape (Nt, 1).
+ * tobs : gsl_vector *
+ *     Timestamps vector of shape (Nt,).
+ * Niter : int
+ *     Total number of MCMC sampling iterations.
+ * sigU : gsl_vector *
+ *     Initial process scale for states.
+ * sigA : gsl_vector *
+ *     Initial process scale for derivatives.
+ * sigEps : double
+ *     Initial observation noise standard deviation.
+ * sigMu : double
+ *     Prior scale standard deviation for mean state components.
+ * sigAlph : double
+ *     Prior scale standard deviation for derivative state components.
+ * a : double
+ *     Inverse-Gamma prior shape parameter.
+ * b : double
+ *     Inverse-Gamma prior scale parameter.
+ * th : marray3d *
+ *     Output 3D array of shape (Niter, Nt, 3) storing posterior state draws.
+ * sig : gsl_matrix *
+ *     Output matrix of shape (Niter, 3) storing posterior scale draws.
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
  */
 int NGPmcmc_NGPmcmc(gsl_matrix *y, gsl_vector *tobs, int Niter, gsl_vector *sigU,
                     gsl_vector *sigA, double sigEps, double sigMu, double sigAlph,
@@ -221,6 +361,22 @@ int NGPmcmc_updatePrior(NGPmcmc *self, char parameter, gsl_vector *param);
 
 int NGPmcmc_writeTheta(NGPmcmc *self, char *name);
 int NGPmcmc_writeSig(NGPmcmc *self, char *name);
+
+/**
+ * Export MCMC posterior draws to text files on disk.
+ *
+ * Parameters
+ * ----------
+ * self : NGPmcmc *
+ *     Sampler instance containing posterior draws.
+ * baseName : char *
+ *     Base filename prefix (e.g. "my_results" produces "my_results_Theta.txt" and "my_results_Sig.txt").
+ *
+ * Returns
+ * -------
+ * int
+ *     0 if successful, non-zero error code on failure.
+ */
 int NGPmcmc_writeOutputs(NGPmcmc *self, char *baseName);
 
 #endif

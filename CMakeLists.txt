@@ -29,20 +29,18 @@ else()
     set(SSSIM_SRC src/SSsimulate2.c)
 endif()
 
-# NOTE: mdarray_complex.c, KalmanFilter2c.c, and fastStateSmoother2c.c are
-# excluded from the build. They originate from the experimental Code/Complex/
-# subdirectory, contain pre-existing declaration/definition mismatches, and
-# are not referenced by any MCMC code. They require dedicated fixes before
-# being added back here.
 set(LAFP_SOURCES
     src/gmlib.c
     src/mdarray.c
+    src/mdarray_complex.c
     src/matrix_utils.c
     # src/mvnorm.c is an exact duplicate of distributions.c (same functions,
     # same signatures). Include only one to avoid duplicate symbol errors.
     src/distributions.c
     src/KalmanFilter2.c
+    src/KalmanFilter2c.c
     src/fastStateSmoother2.c
+    src/fastStateSmoother2c.c
     ${SSSIM_SRC}
     src/NGPtools2.c
     src/NGPsample2.c
@@ -53,19 +51,22 @@ set(LAFP_SOURCES
 # ── Shared library ─────────────────────────────────────────────────────────────
 add_library(lafp_shared SHARED ${LAFP_SOURCES})
 set_target_properties(lafp_shared PROPERTIES OUTPUT_NAME "lafp")
-
-target_include_directories(lafp_shared
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+target_include_directories(lafp_shared PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(lafp_shared PUBLIC GSL::gsl GSL::gslcblas Threads::Threads)
 
-target_link_libraries(lafp_shared
-    PUBLIC GSL::gsl GSL::gslcblas Threads::Threads m
+# ── Static library ─────────────────────────────────────────────────────────────
+add_library(lafp_static STATIC ${LAFP_SOURCES})
+set_target_properties(lafp_static PROPERTIES OUTPUT_NAME "lafp")
+target_include_directories(lafp_static PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(lafp_static PUBLIC GSL::gsl GSL::gslcblas Threads::Threads)
 
-target_compile_options(lafp_shared PRIVATE -O3 -Wall -Wextra)
-
+# ── macOS ad-hoc code signing for dylib ─────────────────────────────────────────
 if(APPLE)
     add_custom_command(TARGET lafp_shared POST_BUILD
         COMMAND codesign --force --sign - $<TARGET_FILE:lafp_shared>
@@ -73,31 +74,25 @@ if(APPLE)
     )
 endif()
 
-# ── Static library ─────────────────────────────────────────────────────────────
-add_library(lafp_static STATIC ${LAFP_SOURCES})
-set_target_properties(lafp_static PROPERTIES OUTPUT_NAME "lafp")
-
-target_include_directories(lafp_static
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
-
-target_link_libraries(lafp_static
-    PUBLIC GSL::gsl GSL::gslcblas Threads::Threads m
-)
-
-target_compile_options(lafp_static PRIVATE -O3 -Wall -Wextra)
+# ── Standalone CLI Tool (lafp-fit) ─────────────────────────────────────────────
+add_executable(lafp-fit src/cli_main.c)
+target_link_libraries(lafp-fit PRIVATE lafp_shared)
+if(APPLE)
+    add_custom_command(TARGET lafp-fit POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:lafp-fit>
+        COMMENT "Ad-hoc signing lafp-fit"
+    )
+endif()
 
 # ── Subdirectories ─────────────────────────────────────────────────────────────
 enable_testing()
-add_subdirectory(tests)
 add_subdirectory(examples)
+add_subdirectory(tests)
 
-# ── Install rules ──────────────────────────────────────────────────────────────
+# ── Installation rules ─────────────────────────────────────────────────────────
 include(GNUInstallDirs)
 
-install(TARGETS lafp_shared lafp_static
+install(TARGETS lafp_shared lafp_static lafp-fit
     LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
