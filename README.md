@@ -5,10 +5,58 @@ This repository implements the model described in the paper
 
 https://www.jmlr.org/papers/volume15/durante14a/durante14a.pdf.
 
-This project is implemented in C using the GSL library to provide an 
+This project is implemented in C using the GSL library to provide an
 incredibly efficient and quick implementation. This code is approximately
 80x faster than implementations in Julia and about 200x faster than Numpy
-implementations. 
+implementations.
+
+## Building
+
+### Prerequisites
+
+| Dependency | macOS | Ubuntu / Debian |
+|---|---|---|
+| CMake ≥ 3.16 | `brew install cmake` | `apt install cmake` |
+| GSL | `brew install gsl` | `apt install libgsl-dev` |
+| C compiler | Xcode CLT / `brew install gcc` | `apt install gcc` |
+
+### Quickstart
+
+```bash
+# Configure (Release build by default)
+cmake -B build
+
+# Build the library, tests, and examples
+cmake --build build -j$(nproc || sysctl -n hw.logicalcpu)
+
+# Run the test suite
+ctest --test-dir build -V
+
+# Install to /usr/local (optional; requires sudo)
+sudo cmake --install build
+
+# Or install to a custom prefix (no sudo required)
+cmake --install build --prefix ~/.local
+```
+
+### Build targets
+
+| Target | Description |
+|---|---|
+| `lafp_shared` | Shared library (`liblafp.so` / `liblafp.dylib`) |
+| `lafp_static` | Static library (`liblafp.a`) |
+| `run_ngpmcmc` | Command-line MCMC runner (see `examples/`) |
+| `test_ngpmcmc` | Integration test |
+| `test_heinkel` | Unit test for Hankel matrix utility |
+
+### Running the sampler
+
+```bash
+# run_ngpmcmc <observations_file> <timepoints_file> <Nt>
+./build/examples/run_ngpmcmc data/y.txt data/tobs.txt 1001
+```
+
+Output files (`Samps_*.txt`) are written to the working directory.
 
 
 ## Why is my code so much faster
