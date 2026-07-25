@@ -123,7 +123,7 @@ int SSsimulate2_free(SSsimulate2 *s){
 						&s->y_plus_Mtp,&s->HH_C,&s->QQ_C,
 						&s->alpha_plus,&s->alpha_hat_plus,
 						&s->alpha_hat,&s->P_init_C,
-						&s->P_init_C,NULL))				GMERR(-61);
+						&s->v,NULL))				GMERR(-61);
 	marray3d_free(s->K1);
 	marray3d_free(s->Finv1);
 	marray3d_free(s->K2);
