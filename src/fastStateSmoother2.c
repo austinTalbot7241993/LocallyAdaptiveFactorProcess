@@ -46,6 +46,8 @@ int FSS2_free(FSS2 *s){
 				&s->RQR,&s->Ktt_Mpm,
 				&s->TTt_Mmm,NULL))	GMERR(-31);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("FSS2_free",1);
 }

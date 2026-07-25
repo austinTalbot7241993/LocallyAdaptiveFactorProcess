@@ -819,6 +819,8 @@ int NGPlaf2_free(NGPlaf2 *s){
 				&s->ThetaKsiT_O,
 				&s->TKKT_O,NULL))						GMERR(-1421);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("NGPlaf2_free",1);
 }

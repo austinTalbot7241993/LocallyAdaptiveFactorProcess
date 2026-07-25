@@ -25,6 +25,11 @@ int main(){
 
 	if(hankel(c,r,out))		GMERR(-11);
 	printGSLMatrix(out);
+
+	gsl_vector_free(c);
+	gsl_vector_free(r);
+	gsl_matrix_free(out);
+
 	return(0);
 GMERRH("main",1);
 }

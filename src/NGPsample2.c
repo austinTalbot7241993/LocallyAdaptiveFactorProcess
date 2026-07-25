@@ -44,6 +44,8 @@ int _NGPsample_free(_NGPsample *s){
 	if(SSsimulate2_free(s->SSsample))		GMERR(-11);
 	gsl_matrix_free(s->alphaDraw);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("_NGPsample2_free",1);
 }

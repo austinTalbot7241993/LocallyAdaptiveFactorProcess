@@ -134,6 +134,8 @@ int SSsimulate2_free(SSsimulate2 *s){
 	if(Kalman2_free(s->kalman1))						GMERR(-101);
 	if(Kalman2_free(s->kalman2))						GMERR(-111);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("SSsimulate2_free",1);
 }

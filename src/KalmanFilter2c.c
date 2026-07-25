@@ -51,6 +51,8 @@ int Kalman2c_free(Kalman2c *s){
 				&s->RQR,&s->RRT,NULL))			GMERR(-31);
 	if(marray3d_complex_free(s->P_Atmm))		GMERR(-41);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("Kalman2_free",1);
 }

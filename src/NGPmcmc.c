@@ -168,6 +168,8 @@ int NGPmcmc_free(NGPmcmc *s){
 
 	gsl_rng_free(s->rand);
 
+	GM_Free(s);
+
 	return(0);
 GMERRH("NGPmcmc_free",1);
 }

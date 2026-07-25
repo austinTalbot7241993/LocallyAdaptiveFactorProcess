@@ -1382,6 +1382,8 @@ int mnormF(gsl_matrix *m,double *result){
 	tr = trace(mmt);
 	tr = sqrt(tr);
 	*result = tr;
+	gsl_matrix_free(mT);
+	gsl_matrix_free(mmt);
 	return(0);
 GMERRH("mnormF",1);
 }

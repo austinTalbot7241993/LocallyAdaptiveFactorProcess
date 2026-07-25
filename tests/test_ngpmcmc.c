@@ -50,71 +50,13 @@ int main(){
 	if(NGPmcmc_operations(myMCMC))			GMERR(-41);
 	if(NGPmcmc_writeOutputs(myMCMC,"AMY_M1"))	GMERR(-101);
 
-//	fp = fopen("U.txt","r");
-//	if(fp==NULL)		GMERR(-31);
-//	gsl_vector_fscanf(fp,myMCMC->U);
-//	printGSLVector(myMCMC->U);
-//	printf(">>>>>>\n");
-//	fclose(fp);
-//	for(i=0;i<nSamps;i++){
-//		if(NGPmcmc_drawSigEps(myMCMC))		GMERR(-41);
-//		gsl_vector_set(epsSamps,i,myMCMC->sigEps);
-//	}
-//	fp = fopen("epsSamps.txt","w");
-//	if(fp==NULL)			GMERR(-51);
-//	gsl_vector_fprintf(fp,epsSamps,"%0.15f");
-//	fclose(fp);
-
-
-//	fp = fopen("G.txt","r");
-//	if(fp==NULL)				GMERR(-31);
-//	if(marray3d_read(fp,myMCMC->G))	GMERR(-32);
-//	fclose(fp);
-//
-//	fp = fopen("Gtilde.txt","r");
-//	if(fp==NULL)				GMERR(-41);
-//	if(marray3d_read(fp,myMCMC->Gtilde))	GMERR(-42);
-//	fclose(fp);
-//
-//	fp = fopen("W.txt","r");
-//	if(fp==NULL)				GMERR(-61);
-//	if(marray3d_read(fp,myMCMC->W))	GMERR(-62);
-//	fclose(fp);
-//
-//	fp = fopen("Htilde.txt","r");
-//	if(fp==NULL)				GMERR(-71);
-//	if(marray3d_read(fp,myMCMC->Htilde))	GMERR(-72);
-//	fclose(fp);
-//
-//	fp = fopen("Wtilde.txt","r");
-//	if(fp==NULL)				GMERR(-81);
-//	if(marray3d_read(fp,myMCMC->Wtilde))	GMERR(-82);
-//	fclose(fp);
-//
-//	fp = fopen("Wstar.txt","r");
-//	if(fp==NULL)				GMERR(-91);
-//	if(marray3d_read(fp,myMCMC->Wstar))	GMERR(-92);
-//	fclose(fp);
-//	
-//	fp = fopen("Wtilde_star.txt","r");
-//	if(fp==NULL)				GMERR(-91);
-//	if(marray3d_read(fp,myMCMC->Wtildestar))	GMERR(-92);
-//	fclose(fp);
-//
-//	fp = fopen("theta.txt","r");
-//	if(fp==NULL)				GMERR(-101);
-//	gsl_matrix_fscanf(fp,myMCMC->theta);
-//	fclose(fp);
-//	
-//	fp = fopen("theta_star.txt","r");
-//	if(fp==NULL)				GMERR(-111);
-//	gsl_matrix_fscanf(fp,myMCMC->thetastar);
-//	fclose(fp);
-//
-//	if(NGPmcmc_calc_acceptance_prob(myMCMC))	GMERR(-221);
-
-//	if(NGPmcmc_writeOutputs(myMCMC,"test2"))	GMERR(-101);
-	
+	NGPmcmc_free(myMCMC);
+	gsl_matrix_free(y);
+	gsl_vector_free(sigU);
+	gsl_vector_free(sigA);
+	marray3d_free(th);
+	gsl_matrix_free(sig);
+	gsl_vector_free(tobs);
 
 	return(0);
 GMERRH("main",1);
