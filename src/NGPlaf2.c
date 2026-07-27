@@ -305,6 +305,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	int i;
 	double temp;
 	if(self==NULL)								GMERR(-1);
+	gsl_set_error_handler_off();
+
 	if(_NGPlaf2_checkInputs(tobs,y,NK,NL,Niter,Ksi_out,Psi_out,yhat_out,
 						mu_out,Sigma_out,sigPrior,epsPrior,
 						ksiPrior,APrior,psiPrior,BPrior,aaPrior))			GMERR(-11);

@@ -1,6 +1,7 @@
 #include <lafp/gmlib.h>
 #include <stdarg.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_errno.h>
 
 
 static int _isInitialized;
@@ -21,6 +22,7 @@ int     GM_Initialize()
 {
 	/* Call this at the beginning of your app */
 	if ( ! _isInitialized ) {
+		gsl_set_error_handler_off();
 		_isInitialized = 1;
 	}
 	return( 1 );
