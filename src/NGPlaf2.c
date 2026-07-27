@@ -1305,9 +1305,13 @@ int NGPlaf2_sample_Phi(NGPlaf2 *self){
 	for(j=0;j<Np;j++){
 		for(l=0;l<NL;l++){
 			taul = gsl_vector_get(self->tau,l);
+			if (taul < 1e-12 || isnan(taul)) taul = 1e-12;
 			thetajl = gsl_matrix_get(self->Theta,j,l);
 			thetajl = thetajl*thetajl;
-			draw = gsl_ran_gamma(self->rand,2,2/(3+taul*thetajl));
+			double denom = 3.0 + taul * thetajl;
+			if (denom < 1e-12 || isnan(denom)) denom = 1e-12;
+			draw = gsl_ran_gamma(self->rand,2.0,2.0 / denom);
+			if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 			gsl_matrix_set(self->Phi,j,l,draw);
 		}
 	}
@@ -1330,23 +1334,33 @@ int NGPlaf2_sample_Tau(NGPlaf2 *self){
 
 	//tau_minus = cumprod(theta)/theta[1]
 	if(cumProd(self->theta,self->tau_minus_Tau))									GMERR(-21);
-	if(gsl_vector_scale(self->tau_minus_Tau,1/gsl_vector_get(self->theta,0)))  		GMERR(-31);
+	double th0 = gsl_vector_get(self->theta, 0);
+	if (th0 < 1e-12 || isnan(th0)) th0 = 1e-12;
+	if(gsl_vector_scale(self->tau_minus_Tau, 1.0 / th0))  							GMERR(-31);
 
 	//theta[1] = rand(Gamma(a1+.5*Np,1/(1+.5*dot(tau_minus,PhiTheta))))
 	A1 = a1 + (double)(Np*NL)/2.0;
 	if(gsl_blas_ddot(self->tau_minus_Tau,self->sum_Tau,dot))						GMERR(-32);
-	draw = gsl_ran_gamma(self->rand,A1,1/(1.0+0.5*(*dot)));
+	double scale1 = 1.0 + 0.5 * (*dot);
+	if (scale1 < 1e-12 || isnan(scale1)) scale1 = 1e-12;
+	draw = gsl_ran_gamma(self->rand,A1, 1.0 / scale1);
+	if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 	gsl_vector_set(self->theta,0,draw);
 	
 	for(h=0;h<NL;h++){
 		//tau_minus = cumprod(theta)/theta[h]
 		if(cumProd(self->theta,self->tau_minus_Tau))								GMERR(-41);
-		if(gsl_vector_scale(self->tau_minus_Tau,1/gsl_vector_get(self->theta,h)))	GMERR(-51);
+		double thh = gsl_vector_get(self->theta, h);
+		if (thh < 1e-12 || isnan(thh)) thh = 1e-12;
+		if(gsl_vector_scale(self->tau_minus_Tau, 1.0 / thh))						GMERR(-51);
 		if(gsl_blas_ddot(self->tau_minus_Tau,self->sum_Tau,dot))					GMERR(-61);
 
 		//theta[h] = rand(a2+.5*Np*(NL-h+1),1/(1+.5*dot(tau_minus,Phitheta)))
 		A2 = a2 + (double)(Np*(NL-h))/2.0;
-		draw = gsl_ran_gamma(self->rand,A2,1/(1.0+0.5*(*dot)));
+		double scale2 = 1.0 + 0.5 * (*dot);
+		if (scale2 < 1e-12 || isnan(scale2)) scale2 = 1e-12;
+		draw = gsl_ran_gamma(self->rand,A2, 1.0 / scale2);
+		if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 		gsl_vector_set(self->theta,h,draw);
 	}
 
@@ -1355,6 +1369,7 @@ int NGPlaf2_sample_Tau(NGPlaf2 *self){
 	return(0);
 GMERRH("NGPlaf2_sample_Tau",1);
 }
+
 
 /****************************************************
 * Methods for calculating the deterministic outputs *
