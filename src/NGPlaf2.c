@@ -590,6 +590,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	self->mu_out = mu_out;
 	self->Sigma_out = Sigma_out;
 
+	if(NGPlaf2_reset(self)) GMERR(-191);
+
 	return(0);
 GMERRH("NGPlaf2_construct",1);
 }
