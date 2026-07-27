@@ -167,21 +167,24 @@ int NGP_assemble_matrices(int Np,int Ns,gsl_vector *delta,double *sigEps,gsl_vec
 	gsl_matrix_scale(HH,*sigEps);
 	marray3d_set_X(H,HH,0);
 
+	//Build the (time-invariant) state-noise loading matrix RR once.
+	//The state vector uses the "grouped-by-order" layout of NGP_G:
+	//indices [0,Ns) are the level-0 states, [Ns,2Ns) the level-1
+	//(derivative) states and [2Ns,3Ns) the level-2 (latent) states.
+	//The noise vector produced by NGP_W is ordered as [varU_0..varU_{Ns-1},
+	//varA_0..varA_{Ns-1}] in the approximate model, so varU disturbances
+	//must load onto the derivative states and varA onto the latent states.
 	if(approx){
-		//R = sparse([2:3:Nm ; 3:3:Nm], [1:2:Nr ; 2:2:Nr], 1., Nm, Nr)
 		gsl_matrix_set_zero(RR);
 		for(t=0;t<Ns;t++){
-			gsl_matrix_set(RR,3*t+1,2*t,1.0);
-			gsl_matrix_set(RR,3*t+2,2*t+1,1.0);
+			gsl_matrix_set(RR,Ns+t,t,1.0);			//varU noise -> derivative state
+			gsl_matrix_set(RR,2*Ns+t,Ns+t,1.0);		//varA noise -> latent state
 		}
-		if(marray3d_set_X(R,RR,0))							GMERR(-31);
-
 	}else{
 		//R = speye(Float64, Nm)
 		gsl_matrix_set_identity(RR);
-		if(marray3d_set_X(R,RR,0))							GMERR(-31);
 	}
-	
+
 	for(t=0;t<Nt;t++){
 		//T[:,:,t] = G(Ns,delta[t],approx=approx)
 		if(NGP_G(Ns,gsl_vector_get(delta,t),approx,TT))		GMERR(-41);
@@ -189,7 +192,17 @@ int NGP_assemble_matrices(int Np,int Ns,gsl_vector *delta,double *sigEps,gsl_vec
 		//Q[:,:,t] = W(Ns,delta[t],sigU.^2,sigA.^2,approx =approx)
 		if(NGP_W(Ns,gsl_vector_get(delta,t),sigU2,sigA2,approx,QQ))		GMERR(-61);
 		if(marray3d_set_X(Q,QQ,t))							GMERR(-71);
+	}
 
+	//R is time-invariant, so it is written once per allocated slice.
+	//Callers allocate it either time-invariant (d1==1) or time-varying
+	//(d1==Nt).  In the latter case *every* slice must be written:
+	//the Kalman filter/smoother/simulator treat any array with d1>1 as
+	//time-varying and read R[1..Nt-1], and marray3d_alloc does not zero
+	//its matrices, so any slice left unwritten is uninitialised heap
+	//garbage that overflows the state covariance to Inf/NaN.
+	for(t=0;t<(int)R->d1;t++){
+		if(marray3d_set_X(R,RR,t))							GMERR(-31);
 	}
 
 	//a0 = zeros(Nm)

@@ -128,6 +128,9 @@ class LAFPBindings:
         self.lib.NGPlaf2_init.restype = ctypes.c_int
         self.lib.NGPlaf2_init.argtypes = [ctypes.c_void_p]
 
+        self.lib.NGPlaf2_reset.restype = ctypes.c_int
+        self.lib.NGPlaf2_reset.argtypes = [ctypes.c_void_p]
+
         self.lib.NGPlaf2_free.restype = ctypes.c_int
         self.lib.NGPlaf2_free.argtypes = [ctypes.c_void_p]
 

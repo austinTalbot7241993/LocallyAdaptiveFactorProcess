@@ -111,17 +111,22 @@ class MultivariateLAFPFactorModel:
         if n_samps < 1:
             raise ValueError(f"n_iter must be at least 5 (got {self.n_iter}).")
 
+        def _to_pair(val):
+            if isinstance(val, (int, float)):
+                return (float(val), float(val))
+            return tuple(val)
+
         # GSL Inputs
         gsl_y = b.numpy_to_gsl_matrix(y_arr)
         gsl_tobs = b.numpy_to_gsl_vector(tobs_arr)
 
         gsl_sig_prior = b.numpy_to_gsl_vector([self.sig_mu, self.sig_alpha])
-        gsl_eps_prior = b.numpy_to_gsl_vector(self.prior_eps)
-        gsl_ksi_prior = b.numpy_to_gsl_vector(self.prior_ksi)
-        gsl_a_prior = b.numpy_to_gsl_vector(self.prior_a)
-        gsl_psi_prior = b.numpy_to_gsl_vector(self.prior_psi)
-        gsl_b_prior = b.numpy_to_gsl_vector(self.prior_b)
-        gsl_aa_prior = b.numpy_to_gsl_vector(self.prior_aa)
+        gsl_eps_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_eps))
+        gsl_ksi_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_ksi))
+        gsl_a_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_a))
+        gsl_psi_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_psi))
+        gsl_b_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_b))
+        gsl_aa_prior = b.numpy_to_gsl_vector(_to_pair(self.prior_aa))
 
         # Output marrays
         marray_ksi = lib.marray3d_alloc(n_samps, n_t, self.n_factors * self.n_dict)
@@ -251,6 +256,8 @@ class LAFPFactorModel:
                 n_iter=self.n_iter,
                 sig_mu=self.sig_mu,
                 sig_alpha=self.sig_alpha,
+                prior_a=self.prior_a,
+                prior_b=self.prior_b,
             )
             self._mv_model.fit(y_arr, tobs)
             self.mu_ = self._mv_model.mu_

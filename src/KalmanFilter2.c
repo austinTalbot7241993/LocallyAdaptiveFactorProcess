@@ -275,6 +275,9 @@ int Kalman2_operations(Kalman2 *self){
 		if(DDOT_MM(ZPt_Mpm,Zt_Mmp,ZPZ_Mpp))									GMERR(-211);
 		//if(M_ADD(ZPZ_Mpp,HH))												GMERR(-221);
 		if(gsl_matrix_add(self->ZPZ_Mpp,HH))								GMERR(-221);
+		for(int di=0; di<self->ZPZ_Mpp->size1; di++) {
+			gsl_matrix_set(self->ZPZ_Mpp, di, di, gsl_matrix_get(self->ZPZ_Mpp, di, di) + 1e-9);
+		}
 		
 		//Finv[t] = np.linalg.inv(F)
 		if(inv_LU(self->ZPZ_Mpp,self->Finvt_Mpp))							GMERR(-231);

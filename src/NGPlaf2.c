@@ -590,6 +590,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	self->mu_out = mu_out;
 	self->Sigma_out = Sigma_out;
 
+	if(NGPlaf2_reset(self)) GMERR(-191);
+
 	return(0);
 GMERRH("NGPlaf2_construct",1);
 }
@@ -598,14 +600,10 @@ int NGPlaf2_reset(NGPlaf2 *self){
 	int NL,NK;
 	if(self==NULL)								GMERR(-1);
 	NL = self->NL;NK = self->NK;
-	self->sigKsi = gsl_vector_set_ones(NL*NK);
-	self->sigA = gsl_vector_set_ones(NL*NK);
-	self->sigPsi = gsl_vector_set_ones(NK);
-	self->sigB = gsl_vector_set_ones(NK);
-	gsl_vector_scale(self->sigA,50.0);
-	gsl_vector_scale(self->sigPsi,50.0);
-	gsl_vector_scale(self->sigB,50.0);
-	gsl_vector_scale(self->sigKsi,50.0);
+	gsl_vector_set_all(self->sigKsi, 50.0);
+	gsl_vector_set_all(self->sigA, 50.0);
+	gsl_vector_set_all(self->sigPsi, 50.0);
+	gsl_vector_set_all(self->sigB, 50.0);
 	if(randnM(self->eta,self->rand,0,1))				GMERR(-21);
 	if(randnM(self->Theta,self->rand,0,1))				GMERR(-31);
 	if(randgM(self->Phi,self->rand,1.5,.667))			GMERR(-41);
