@@ -320,8 +320,9 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	self->Nm = 3*Nst;
 	Nm = self->Nm;
 	self->Niter=Niter;
-	self->burnin = 5000;
+	self->burnin = (Niter > 5000) ? 5000 : (Niter / 2);
 	self->Nthin = 5;
+
 
 	Np = self->Np;
 	Nt = self->Nt;
@@ -990,9 +991,12 @@ int NGPlaf2_sample_sigKsi(NGPlaf2 *self){
 	for(i=0;i<Nksi;i++){
 		//sigKsi[i] = sqrt(rand(InverseGamma(aKsi+0.5*Nt,bKsi+0.5*R2Ksi[idx])))
         IGb = bKsi + gsl_vector_get(self->RKsi_sigKsi,i)/2.0;
-        draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+        double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+        if (g_draw < 1e-12) g_draw = 1e-12;
+        draw = sqrt(1.0/g_draw);
         gsl_vector_set(self->sigKsi,i,draw);
 	}
+
 	
 	return(0);
 GMERRH("sample_sigKsi",1);
@@ -1020,13 +1024,16 @@ int NGPlaf2_sample_sigA(NGPlaf2 *self){
 	for(i=0;i<NA;i++){
 		IGb = bA + gsl_vector_get(self->RA_sigA,i)/2;
 		//sigA[idx] = sqrt(rand(InverseGamma(aA+0.5*Nt,bA+0.5*R2A[idx])))
-		draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigA,i,draw);
 	}
 	
 	return(0);
 GMERRH("NGPlaf2_sample_sigA",1);
 }
+
 
 int NGPlaf2_sample_Sigma0(NGPlaf2 *self){
 	int Nt = self->Nt;
@@ -1050,9 +1057,12 @@ int NGPlaf2_sample_Sigma0(NGPlaf2 *self){
 	for(t=0;t<Np;t++){
 		//sig2[j] = rand(InverseGamma(aEps+.5*Nt,bEps+.5*SS[j]))
 		IGb = self->bEps + gsl_vector_get(self->SS_Sigma0,t)/2.0;
-		draw = 1.0/gsl_ran_gamma(self->rand,IGa,1/IGb);
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = 1.0/g_draw;
 		gsl_matrix_set(self->Sigma0,t,t,draw);
 	}
+
 	return(0);
 GMERRH("NGPlaf2_sample_Sigma0",1);
 }
@@ -1134,7 +1144,9 @@ int NGPlaf2_sample_sigPsi(NGPlaf2 *self){
 	IGa = self->aPsi+(double)Nt/2;
 	for(i=0;i<Npsi;i++){
 		IGb = bPsi + gsl_vector_get(self->RPsi_sigPsi,i)/2.0;
-		draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigPsi,i,draw);
 	}
 
@@ -1165,9 +1177,12 @@ int NGPlaf2_sample_sigB(NGPlaf2 *self){
 	for(i=0;i<NB;i++){
 		IGb = bB + gsl_vector_get(self->RB_sigB,i)/2.0;
 		//sigB[idx] = sqrt(rand(InverseGamma(aB+0.5*Nt,bB+0.5*R2B[idx])))
-		draw = sqrt(1/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigB,i,draw);
 	}
+
 	
 	return(0);
 GMERRH("NGPlaf2_sample_sigB",1);
