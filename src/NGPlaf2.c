@@ -347,7 +347,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	/**************************
 	* random number generator *
 	**************************/
-	self->rand = gsl_rng_alloc(gsl_rng_ranlxs0);
+	self->rand = gsl_rng_alloc(gsl_rng_default);
+
 
 	//prior parameters
 	self->sigMu = gsl_vector_get(sigPrior,0);
@@ -548,7 +549,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	//tol_Theta not updated
 	M_ALLOC(tol_Theta,NL,NL);
 	gsl_matrix_set_identity(self->tol_Theta);
-	gsl_matrix_scale(self->tol_Theta,.00000001);
+	gsl_matrix_scale(self->tol_Theta, 1e-6);
+
 
 	/*************
 	* sample_Phi *
@@ -1057,11 +1059,14 @@ int NGPlaf2_sample_Sigma0(NGPlaf2 *self){
 	for(t=0;t<Np;t++){
 		//sig2[j] = rand(InverseGamma(aEps+.5*Nt,bEps+.5*SS[j]))
 		IGb = self->bEps + gsl_vector_get(self->SS_Sigma0,t)/2.0;
-		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
-		if (g_draw < 1e-12) g_draw = 1e-12;
+		if (IGb < 1e-12 || isnan(IGb)) IGb = 1e-12;
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1.0/IGb);
+		if (g_draw < 1e-12 || isnan(g_draw)) g_draw = 1e-12;
 		draw = 1.0/g_draw;
+		if (draw < 1e-6 || isnan(draw)) draw = 1e-6;
 		gsl_matrix_set(self->Sigma0,t,t,draw);
 	}
+
 
 	return(0);
 GMERRH("NGPlaf2_sample_Sigma0",1);

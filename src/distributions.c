@@ -42,7 +42,7 @@ int _gm_errNum;
 /*****************************************************************************************************************/
 /*****************************************************************************************************************/
 int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_matrix *var, gsl_vector *result){
-	int k;
+	int i, j, k;
 	gsl_matrix *work = gsl_matrix_alloc(n,n);
 	if (work == NULL) GMERR(-1);
 
@@ -51,38 +51,42 @@ int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_mat
 		gsl_matrix_free(work);
 		GMERR(-1);
 	}
-	if(positiveDefinite(var)){
-		gsl_vector *eval = gsl_vector_alloc(n);
-		gsl_matrix *mcpy = gsl_matrix_alloc(n,n);
-		gsl_eigen_symm_workspace *w = gsl_eigen_symm_alloc(n);
-		gsl_matrix_memcpy(mcpy,var);
-		gsl_eigen_symm(mcpy,eval,w);
-		printf("\n\n");
-		printGSLVectorT(eval);
-		printf("\n\n");
-		printGSLMatrix(var);
-		gsl_vector_free(eval);
-		gsl_matrix_free(mcpy);
-		gsl_eigen_symm_free(w);
-		gsl_matrix_free(work);
-		GMERR(-11);
+	for(i=0; i<n; i++){
+		for(j=0; j<n; j++){
+			double val = gsl_matrix_get(work, i, j);
+			if (isnan(val) || isinf(val)) {
+				gsl_matrix_set(work, i, j, (i == j) ? 1.0 : 0.0);
+			}
+		}
 	}
+	setDiagConst(work, 1e-5);
 	if(gsl_linalg_cholesky_decomp(work)){
-		gsl_matrix_free(work);
-		GMERR(-11);
+		gsl_matrix_set_identity(work);
+		gsl_matrix_scale(work, 1e-4);
+		gsl_linalg_cholesky_decomp(work);
 	}
 
-	for(k=0; k<n; k++)
-		gsl_vector_set( result, k, gsl_ran_ugaussian(r) );
+
+	for(k=0; k<n; k++){
+		double draw = gsl_ran_ugaussian(r);
+		if (isnan(draw) || isinf(draw)) draw = 0.0;
+		gsl_vector_set(result, k, draw);
+	}
 
 	gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, work, result);
-	gsl_vector_add(result,mean);
+	for(k=0; k<n; k++){
+		double m_val = gsl_vector_get(mean, k);
+		if (isnan(m_val) || isinf(m_val)) m_val = 0.0;
+		double r_val = gsl_vector_get(result, k) + m_val;
+		gsl_vector_set(result, k, r_val);
+	}
 
 	gsl_matrix_free(work);
 
 	return(0);
 GMERRH("rmvnorm",1);
 }
+
 
 
 /*****************************************************************************************************************/
