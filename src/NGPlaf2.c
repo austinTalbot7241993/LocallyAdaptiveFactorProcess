@@ -305,6 +305,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	int i;
 	double temp;
 	if(self==NULL)								GMERR(-1);
+	gsl_set_error_handler_off();
+
 	if(_NGPlaf2_checkInputs(tobs,y,NK,NL,Niter,Ksi_out,Psi_out,yhat_out,
 						mu_out,Sigma_out,sigPrior,epsPrior,
 						ksiPrior,APrior,psiPrior,BPrior,aaPrior))			GMERR(-11);
@@ -318,8 +320,9 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	self->Nm = 3*Nst;
 	Nm = self->Nm;
 	self->Niter=Niter;
-	self->burnin = 5000;
+	self->burnin = (Niter > 5000) ? 5000 : (Niter / 2);
 	self->Nthin = 5;
+
 
 	Np = self->Np;
 	Nt = self->Nt;
@@ -344,7 +347,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	/**************************
 	* random number generator *
 	**************************/
-	self->rand = gsl_rng_alloc(gsl_rng_ranlxs0);
+	self->rand = gsl_rng_alloc(gsl_rng_default);
+
 
 	//prior parameters
 	self->sigMu = gsl_vector_get(sigPrior,0);
@@ -545,7 +549,8 @@ int NGPlaf2_construct(NGPlaf2 *self,gsl_vector *tobs,gsl_matrix *y,int NK,int NL
 	//tol_Theta not updated
 	M_ALLOC(tol_Theta,NL,NL);
 	gsl_matrix_set_identity(self->tol_Theta);
-	gsl_matrix_scale(self->tol_Theta,.00000001);
+	gsl_matrix_scale(self->tol_Theta, 1e-6);
+
 
 	/*************
 	* sample_Phi *
@@ -678,7 +683,13 @@ int NGPlaf2_free(NGPlaf2 *s){
 	**********/
 	if(GM_FreezeListWithMethod(&GM_FreeGSLVector,"x",
 				&s->sigKsi,&s->sigA,&s->sigB,
-				&s->sigPsi,&s->tau,&s->theta,NULL))		GMERR(-1011);
+				&s->sigPsi,&s->tau,&s->theta,&s->delta,NULL))		GMERR(-1011);
+
+	if(s->rand != NULL) {
+		gsl_rng_free(s->rand);
+		s->rand = NULL;
+	}
+
 
 
 	if(GM_FreezeListWithMethod(&GM_FreeGSLMatrix,"x",
@@ -982,9 +993,12 @@ int NGPlaf2_sample_sigKsi(NGPlaf2 *self){
 	for(i=0;i<Nksi;i++){
 		//sigKsi[i] = sqrt(rand(InverseGamma(aKsi+0.5*Nt,bKsi+0.5*R2Ksi[idx])))
         IGb = bKsi + gsl_vector_get(self->RKsi_sigKsi,i)/2.0;
-        draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+        double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+        if (g_draw < 1e-12) g_draw = 1e-12;
+        draw = sqrt(1.0/g_draw);
         gsl_vector_set(self->sigKsi,i,draw);
 	}
+
 	
 	return(0);
 GMERRH("sample_sigKsi",1);
@@ -1012,13 +1026,16 @@ int NGPlaf2_sample_sigA(NGPlaf2 *self){
 	for(i=0;i<NA;i++){
 		IGb = bA + gsl_vector_get(self->RA_sigA,i)/2;
 		//sigA[idx] = sqrt(rand(InverseGamma(aA+0.5*Nt,bA+0.5*R2A[idx])))
-		draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigA,i,draw);
 	}
 	
 	return(0);
 GMERRH("NGPlaf2_sample_sigA",1);
 }
+
 
 int NGPlaf2_sample_Sigma0(NGPlaf2 *self){
 	int Nt = self->Nt;
@@ -1042,9 +1059,15 @@ int NGPlaf2_sample_Sigma0(NGPlaf2 *self){
 	for(t=0;t<Np;t++){
 		//sig2[j] = rand(InverseGamma(aEps+.5*Nt,bEps+.5*SS[j]))
 		IGb = self->bEps + gsl_vector_get(self->SS_Sigma0,t)/2.0;
-		draw = 1.0/gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (IGb < 1e-12 || isnan(IGb)) IGb = 1e-12;
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1.0/IGb);
+		if (g_draw < 1e-12 || isnan(g_draw)) g_draw = 1e-12;
+		draw = 1.0/g_draw;
+		if (draw < 1e-6 || isnan(draw)) draw = 1e-6;
 		gsl_matrix_set(self->Sigma0,t,t,draw);
 	}
+
+
 	return(0);
 GMERRH("NGPlaf2_sample_Sigma0",1);
 }
@@ -1126,7 +1149,9 @@ int NGPlaf2_sample_sigPsi(NGPlaf2 *self){
 	IGa = self->aPsi+(double)Nt/2;
 	for(i=0;i<Npsi;i++){
 		IGb = bPsi + gsl_vector_get(self->RPsi_sigPsi,i)/2.0;
-		draw = sqrt(1.0/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigPsi,i,draw);
 	}
 
@@ -1157,9 +1182,12 @@ int NGPlaf2_sample_sigB(NGPlaf2 *self){
 	for(i=0;i<NB;i++){
 		IGb = bB + gsl_vector_get(self->RB_sigB,i)/2.0;
 		//sigB[idx] = sqrt(rand(InverseGamma(aB+0.5*Nt,bB+0.5*R2B[idx])))
-		draw = sqrt(1/gsl_ran_gamma(self->rand,IGa,1/IGb));
+		double g_draw = gsl_ran_gamma(self->rand,IGa,1/IGb);
+		if (g_draw < 1e-12) g_draw = 1e-12;
+		draw = sqrt(1.0/g_draw);
 		gsl_vector_set(self->sigB,i,draw);
 	}
+
 	
 	return(0);
 GMERRH("NGPlaf2_sample_sigB",1);
@@ -1188,13 +1216,16 @@ int NGPlaf2_sample_eta(NGPlaf2 *self){
 
 		//Lambda = eye(size(Z_t,2)) + Z_t' * scale(1./diag(Sigma0),Z_t)
 		for(i=0;i<Np;i++){
+			double sig0_ii = gsl_matrix_get(self->Sigma0,i,i);
+			if (sig0_ii < 1e-12 || isnan(sig0_ii)) sig0_ii = 1e-12;
 			for(k=0;k<NK;k++){
-			//This is doing the scaling part shown above
-			temp = gsl_matrix_get(self->Z_tT_Eta,k,i);
-			temp = temp/gsl_matrix_get(self->Sigma0,i,i);
-			gsl_matrix_set(self->Z_tT_Eta,k,i,temp);
+				//This is doing the scaling part shown above
+				temp = gsl_matrix_get(self->Z_tT_Eta,k,i);
+				temp = temp/sig0_ii;
+				gsl_matrix_set(self->Z_tT_Eta,k,i,temp);
 			}
 		}
+
 		if(DDOT_MM(Z_tT_Eta,Z_t_Eta,Lambda_Eta))				GMERR(-71);
 		if(M_ADD(Lambda_Eta,eye_Eta))							GMERR(-81);
 
@@ -1244,6 +1275,8 @@ int NGPlaf2_sample_Theta(NGPlaf2 *self){
 	for(t=0;t<Np;t++){
 		//sig2j = Sigma0[,t,t]
 		sig2j = gsl_matrix_get(self->Sigma0,t,t);
+		if (sig2j < 1e-12 || isnan(sig2j)) sig2j = 1e-12;
+
 
 		//Sigmainv = (etaeta/sig2j) + diagm(squeeze(Phi[j,:],1).*tau)
 		if(gsl_matrix_memcpy(self->Siginv_Theta,self->etaeta_Theta))		GMERR(-81);
@@ -1282,9 +1315,13 @@ int NGPlaf2_sample_Phi(NGPlaf2 *self){
 	for(j=0;j<Np;j++){
 		for(l=0;l<NL;l++){
 			taul = gsl_vector_get(self->tau,l);
+			if (taul < 1e-12 || isnan(taul)) taul = 1e-12;
 			thetajl = gsl_matrix_get(self->Theta,j,l);
 			thetajl = thetajl*thetajl;
-			draw = gsl_ran_gamma(self->rand,2,2/(3+taul*thetajl));
+			double denom = 3.0 + taul * thetajl;
+			if (denom < 1e-12 || isnan(denom)) denom = 1e-12;
+			draw = gsl_ran_gamma(self->rand,2.0,2.0 / denom);
+			if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 			gsl_matrix_set(self->Phi,j,l,draw);
 		}
 	}
@@ -1307,23 +1344,33 @@ int NGPlaf2_sample_Tau(NGPlaf2 *self){
 
 	//tau_minus = cumprod(theta)/theta[1]
 	if(cumProd(self->theta,self->tau_minus_Tau))									GMERR(-21);
-	if(gsl_vector_scale(self->tau_minus_Tau,1/gsl_vector_get(self->theta,0)))  		GMERR(-31);
+	double th0 = gsl_vector_get(self->theta, 0);
+	if (th0 < 1e-12 || isnan(th0)) th0 = 1e-12;
+	if(gsl_vector_scale(self->tau_minus_Tau, 1.0 / th0))  							GMERR(-31);
 
 	//theta[1] = rand(Gamma(a1+.5*Np,1/(1+.5*dot(tau_minus,PhiTheta))))
 	A1 = a1 + (double)(Np*NL)/2.0;
 	if(gsl_blas_ddot(self->tau_minus_Tau,self->sum_Tau,dot))						GMERR(-32);
-	draw = gsl_ran_gamma(self->rand,A1,1/(1.0+0.5*(*dot)));
+	double scale1 = 1.0 + 0.5 * (*dot);
+	if (scale1 < 1e-12 || isnan(scale1)) scale1 = 1e-12;
+	draw = gsl_ran_gamma(self->rand,A1, 1.0 / scale1);
+	if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 	gsl_vector_set(self->theta,0,draw);
 	
 	for(h=0;h<NL;h++){
 		//tau_minus = cumprod(theta)/theta[h]
 		if(cumProd(self->theta,self->tau_minus_Tau))								GMERR(-41);
-		if(gsl_vector_scale(self->tau_minus_Tau,1/gsl_vector_get(self->theta,h)))	GMERR(-51);
+		double thh = gsl_vector_get(self->theta, h);
+		if (thh < 1e-12 || isnan(thh)) thh = 1e-12;
+		if(gsl_vector_scale(self->tau_minus_Tau, 1.0 / thh))						GMERR(-51);
 		if(gsl_blas_ddot(self->tau_minus_Tau,self->sum_Tau,dot))					GMERR(-61);
 
 		//theta[h] = rand(a2+.5*Np*(NL-h+1),1/(1+.5*dot(tau_minus,Phitheta)))
 		A2 = a2 + (double)(Np*(NL-h))/2.0;
-		draw = gsl_ran_gamma(self->rand,A2,1/(1.0+0.5*(*dot)));
+		double scale2 = 1.0 + 0.5 * (*dot);
+		if (scale2 < 1e-12 || isnan(scale2)) scale2 = 1e-12;
+		draw = gsl_ran_gamma(self->rand,A2, 1.0 / scale2);
+		if (draw < 1e-12 || isnan(draw)) draw = 1e-12;
 		gsl_vector_set(self->theta,h,draw);
 	}
 
@@ -1332,6 +1379,7 @@ int NGPlaf2_sample_Tau(NGPlaf2 *self){
 	return(0);
 GMERRH("NGPlaf2_sample_Tau",1);
 }
+
 
 /****************************************************
 * Methods for calculating the deterministic outputs *

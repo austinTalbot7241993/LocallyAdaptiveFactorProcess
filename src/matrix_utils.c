@@ -232,7 +232,8 @@ GMERRH("printGSLVectorRT",1);
 }
 
 //Works
-int printGSLMatrix(gsl_matrix *m){
+int printGSLMatrix(const gsl_matrix *m){
+
 	int i,j;
 	int n1,n2;
 	if(m==NULL)									GMERR(-11);
@@ -354,23 +355,27 @@ int symmetricMatrix(gsl_matrix *m){
 MYRETURN:	return(1);
 }
 
-int positiveDefinite(gsl_matrix *m){
+int positiveDefinite(const gsl_matrix *m){
+	if(m == NULL || m->size1 != m->size2) return 1;
 	int n = m->size1;
 	gsl_vector *eval = gsl_vector_alloc(n);
 	gsl_matrix *m_cpy = gsl_matrix_alloc(n,n);
 	gsl_eigen_symm_workspace *w = gsl_eigen_symm_alloc(n);
-	if(m->size1!=m->size2)		GMERR(-11);
+
 	gsl_matrix_memcpy(m_cpy,m);
 	//ensures real eigenvalues
 	gsl_eigen_symm(m_cpy,eval,w);
-	if(gsl_vector_ispos(eval)==0)	GMERR(-31);
+
+	int is_pos = gsl_vector_ispos(eval);
+
 	//Free the temporary variables
 	gsl_eigen_symm_free(w);
 	gsl_matrix_free(m_cpy);
 	gsl_vector_free(eval);
-	return(0);
-GMERRH("positiveDefinite",1);
+
+	return (is_pos != 0) ? 0 : 1;
 }
+
 //Works
 gsl_matrix * gsl_matrix_set_blockDiagonal2(gsl_matrix *m1,gsl_matrix *m2){
 	int n11 = m1->size1;int n21 = m2->size1;

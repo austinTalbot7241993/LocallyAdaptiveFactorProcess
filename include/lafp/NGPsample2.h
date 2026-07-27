@@ -6,6 +6,8 @@
 #include <string.h>
 #include <gsl/gsl_matrix.h>
 #include <lafp/mdarray.h>
+#include <lafp/SSsimulate2.h>
+
 
 typedef struct{
 	int Np;

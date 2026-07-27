@@ -109,6 +109,53 @@ class LAFPBindings:
         self.lib.marray3d_get.restype = ctypes.c_double
         self.lib.marray3d_get.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t]
 
+        # marray4d Helpers
+        self.lib.marray4d_alloc.restype = ctypes.c_void_p
+        self.lib.marray4d_alloc.argtypes = [ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t]
+
+        self.lib.marray4d_free.restype = None
+        self.lib.marray4d_free.argtypes = [ctypes.c_void_p]
+
+        self.lib.marray4d_get.restype = ctypes.c_double
+        self.lib.marray4d_get.argtypes = [
+            ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t
+        ]
+
+        # NGPlaf2 (Multivariate LAFP) Signatures
+        self.lib.NGPlaf2_New.restype = ctypes.c_void_p
+        self.lib.NGPlaf2_New.argtypes = []
+
+        self.lib.NGPlaf2_init.restype = ctypes.c_int
+        self.lib.NGPlaf2_init.argtypes = [ctypes.c_void_p]
+
+        self.lib.NGPlaf2_free.restype = ctypes.c_int
+        self.lib.NGPlaf2_free.argtypes = [ctypes.c_void_p]
+
+        self.lib.NGPlaf2_construct.restype = ctypes.c_int
+        self.lib.NGPlaf2_construct.argtypes = [
+            ctypes.c_void_p,  # self
+            ctypes.c_void_p,  # tobs (gsl_vector*)
+            ctypes.c_void_p,  # y (gsl_matrix*)
+            ctypes.c_int,     # NK
+            ctypes.c_int,     # NL
+            ctypes.c_int,     # Niter
+            ctypes.c_void_p,  # Ksi_out (marray3d*)
+            ctypes.c_void_p,  # Psi_out (marray3d*)
+            ctypes.c_void_p,  # yhat_out (marray3d*)
+            ctypes.c_void_p,  # mu_out (marray3d*)
+            ctypes.c_void_p,  # Sigma_out (marray4d*)
+            ctypes.c_void_p,  # sigPrior (gsl_vector*)
+            ctypes.c_void_p,  # epsPrior (gsl_vector*)
+            ctypes.c_void_p,  # ksiPrior (gsl_vector*)
+            ctypes.c_void_p,  # APrior (gsl_vector*)
+            ctypes.c_void_p,  # psiPrior (gsl_vector*)
+            ctypes.c_void_p,  # BPrior (gsl_vector*)
+            ctypes.c_void_p   # aaPrior (gsl_vector*)
+        ]
+
+        self.lib.NGPlaf2_operations.restype = ctypes.c_int
+        self.lib.NGPlaf2_operations.argtypes = [ctypes.c_void_p]
+
     def numpy_to_gsl_matrix(self, arr):
         """Convert a 2D numpy array to a GSL matrix pointer."""
         arr = np.asarray(arr, dtype=np.float64)
@@ -146,3 +193,14 @@ class LAFPBindings:
                 for k in range(d3):
                     arr[i, j, k] = self.lib.marray3d_get(marray, i, j, k)
         return arr
+
+    def marray4d_to_numpy(self, marray, d1, d2, d3, d4):
+        """Convert a 4D marray4d pointer to a 4D numpy array."""
+        arr = np.zeros((d1, d2, d3, d4), dtype=np.float64)
+        for i in range(d1):
+            for j in range(d2):
+                for k in range(d3):
+                    for l in range(d4):
+                        arr[i, j, k, l] = self.lib.marray4d_get(marray, i, j, k, l)
+        return arr
+

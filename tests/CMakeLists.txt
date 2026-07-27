@@ -68,10 +68,30 @@ set_tests_properties(test_cli PROPERTIES
     LABELS    "integration"
 )
 
+find_library(MATH_LIBRARY m)
+
+# ── test_ngplaf2 (Multivariate Integration Test) ──────────────────────────────
+add_executable(test_ngplaf2 test_ngplaf2.c)
+target_link_libraries(test_ngplaf2 PRIVATE lafp_shared ${MATH_LIBRARY})
+
+
+add_test(
+    NAME    test_ngplaf2
+    COMMAND test_ngplaf2
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+set_tests_properties(test_ngplaf2 PROPERTIES
+    WILL_FAIL FALSE
+    LABELS    "integration"
+)
+
 # ── macOS ad-hoc code signing for CTest targets ──────────────────────────────
 if(APPLE)
     add_custom_command(TARGET test_ngpmcmc POST_BUILD
         COMMAND codesign --force --sign - $<TARGET_FILE:test_ngpmcmc>
+    )
+    add_custom_command(TARGET test_ngplaf2 POST_BUILD
+        COMMAND codesign --force --sign - $<TARGET_FILE:test_ngplaf2>
     )
     add_custom_command(TARGET test_heinkel POST_BUILD
         COMMAND codesign --force --sign - $<TARGET_FILE:test_heinkel>
@@ -89,3 +109,4 @@ if(APPLE)
         COMMAND codesign --force --sign - $<TARGET_FILE:test_cli>
     )
 endif()
+

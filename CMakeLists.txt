@@ -48,6 +48,8 @@ set(LAFP_SOURCES
     src/NGPlaf2.c
 )
 
+find_library(MATH_LIBRARY m)
+
 # ── Shared library ─────────────────────────────────────────────────────────────
 add_library(lafp_shared SHARED ${LAFP_SOURCES})
 set_target_properties(lafp_shared PROPERTIES OUTPUT_NAME "lafp")
@@ -55,7 +57,7 @@ target_include_directories(lafp_shared PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(lafp_shared PUBLIC GSL::gsl GSL::gslcblas Threads::Threads)
+target_link_libraries(lafp_shared PUBLIC GSL::gsl GSL::gslcblas Threads::Threads ${MATH_LIBRARY})
 
 # ── Static library ─────────────────────────────────────────────────────────────
 add_library(lafp_static STATIC ${LAFP_SOURCES})
@@ -64,7 +66,8 @@ target_include_directories(lafp_static PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(lafp_static PUBLIC GSL::gsl GSL::gslcblas Threads::Threads)
+target_link_libraries(lafp_static PUBLIC GSL::gsl GSL::gslcblas Threads::Threads ${MATH_LIBRARY})
+
 
 # ── macOS ad-hoc code signing for dylib ─────────────────────────────────────────
 if(APPLE)
