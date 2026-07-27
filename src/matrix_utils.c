@@ -232,7 +232,8 @@ GMERRH("printGSLVectorRT",1);
 }
 
 //Works
-int printGSLMatrix(gsl_matrix *m){
+int printGSLMatrix(const gsl_matrix *m){
+
 	int i,j;
 	int n1,n2;
 	if(m==NULL)									GMERR(-11);
@@ -354,7 +355,8 @@ int symmetricMatrix(gsl_matrix *m){
 MYRETURN:	return(1);
 }
 
-int positiveDefinite(gsl_matrix *m){
+int positiveDefinite(const gsl_matrix *m){
+
 	int n = m->size1;
 	gsl_vector *eval = gsl_vector_alloc(n);
 	gsl_matrix *m_cpy = gsl_matrix_alloc(n,n);

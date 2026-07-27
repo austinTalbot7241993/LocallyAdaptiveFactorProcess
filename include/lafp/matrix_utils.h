@@ -83,7 +83,8 @@ gsl_matrix * D_gsl_matrix_alloc(int n1, int n2);
 /* Matrix & Vector Formatting Print Routines */
 int printGSLVector(gsl_vector *v);
 int printGSLVectorT(gsl_vector *v);
-int printGSLMatrix(gsl_matrix *m);
+int printGSLMatrix(const gsl_matrix *m);
+
 
 int printGSLVectorR(gsl_vector *v);
 int printGSLVectorRT(gsl_vector *v);
@@ -153,7 +154,8 @@ int positiveMatrix(gsl_matrix *m);
  * int
  *     1 if m is symmetric positive-definite, 0 otherwise.
  */
-int positiveDefinite(gsl_matrix *m);
+int positiveDefinite(const gsl_matrix *m);
+
 
 int symmetricMatrix(gsl_matrix *m);
 

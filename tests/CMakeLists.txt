@@ -68,9 +68,12 @@ set_tests_properties(test_cli PROPERTIES
     LABELS    "integration"
 )
 
+find_library(MATH_LIBRARY m)
+
 # ── test_ngplaf2 (Multivariate Integration Test) ──────────────────────────────
 add_executable(test_ngplaf2 test_ngplaf2.c)
-target_link_libraries(test_ngplaf2 PRIVATE lafp_shared)
+target_link_libraries(test_ngplaf2 PRIVATE lafp_shared ${MATH_LIBRARY})
+
 
 add_test(
     NAME    test_ngplaf2
