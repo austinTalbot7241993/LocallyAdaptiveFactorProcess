@@ -42,18 +42,15 @@ int _gm_errNum;
 /*****************************************************************************************************************/
 /*****************************************************************************************************************/
 int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_matrix *var, gsl_vector *result){
-/* multivariate normal distribution random number generator */
-/*
-*	n	dimension of the random vetor
-*	mean	vector of means of size n
-*	var	variance matrix of dimension n x n
-*	result	output variable with a sigle random vector normal distribution generation
-*/
 	int k;
 	gsl_matrix *work = gsl_matrix_alloc(n,n);
+	if (work == NULL) GMERR(-1);
 
 	gsl_matrix_memcpy(work,var);
-	if(cmatrixIsZero(var))								GMERR(-1);	
+	if(cmatrixIsZero(var)){
+		gsl_matrix_free(work);
+		GMERR(-1);
+	}
 	if(positiveDefinite(var)){
 		gsl_vector *eval = gsl_vector_alloc(n);
 		gsl_matrix *mcpy = gsl_matrix_alloc(n,n);
@@ -67,9 +64,13 @@ int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_mat
 		gsl_vector_free(eval);
 		gsl_matrix_free(mcpy);
 		gsl_eigen_symm_free(w);
+		gsl_matrix_free(work);
 		GMERR(-11);
 	}
-	if(gsl_linalg_cholesky_decomp(work))				GMERR(-11);
+	if(gsl_linalg_cholesky_decomp(work)){
+		gsl_matrix_free(work);
+		GMERR(-11);
+	}
 
 	for(k=0; k<n; k++)
 		gsl_vector_set( result, k, gsl_ran_ugaussian(r) );
@@ -82,6 +83,7 @@ int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_mat
 	return(0);
 GMERRH("rmvnorm",1);
 }
+
 
 /*****************************************************************************************************************/
 /*****************************************************************************************************************/

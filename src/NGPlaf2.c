@@ -678,7 +678,13 @@ int NGPlaf2_free(NGPlaf2 *s){
 	**********/
 	if(GM_FreezeListWithMethod(&GM_FreeGSLVector,"x",
 				&s->sigKsi,&s->sigA,&s->sigB,
-				&s->sigPsi,&s->tau,&s->theta,NULL))		GMERR(-1011);
+				&s->sigPsi,&s->tau,&s->theta,&s->delta,NULL))		GMERR(-1011);
+
+	if(s->rand != NULL) {
+		gsl_rng_free(s->rand);
+		s->rand = NULL;
+	}
+
 
 
 	if(GM_FreezeListWithMethod(&GM_FreeGSLMatrix,"x",
