@@ -1211,13 +1211,16 @@ int NGPlaf2_sample_eta(NGPlaf2 *self){
 
 		//Lambda = eye(size(Z_t,2)) + Z_t' * scale(1./diag(Sigma0),Z_t)
 		for(i=0;i<Np;i++){
+			double sig0_ii = gsl_matrix_get(self->Sigma0,i,i);
+			if (sig0_ii < 1e-12 || isnan(sig0_ii)) sig0_ii = 1e-12;
 			for(k=0;k<NK;k++){
-			//This is doing the scaling part shown above
-			temp = gsl_matrix_get(self->Z_tT_Eta,k,i);
-			temp = temp/gsl_matrix_get(self->Sigma0,i,i);
-			gsl_matrix_set(self->Z_tT_Eta,k,i,temp);
+				//This is doing the scaling part shown above
+				temp = gsl_matrix_get(self->Z_tT_Eta,k,i);
+				temp = temp/sig0_ii;
+				gsl_matrix_set(self->Z_tT_Eta,k,i,temp);
 			}
 		}
+
 		if(DDOT_MM(Z_tT_Eta,Z_t_Eta,Lambda_Eta))				GMERR(-71);
 		if(M_ADD(Lambda_Eta,eye_Eta))							GMERR(-81);
 
@@ -1267,6 +1270,8 @@ int NGPlaf2_sample_Theta(NGPlaf2 *self){
 	for(t=0;t<Np;t++){
 		//sig2j = Sigma0[,t,t]
 		sig2j = gsl_matrix_get(self->Sigma0,t,t);
+		if (sig2j < 1e-12 || isnan(sig2j)) sig2j = 1e-12;
+
 
 		//Sigmainv = (etaeta/sig2j) + diagm(squeeze(Phi[j,:],1).*tau)
 		if(gsl_matrix_memcpy(self->Siginv_Theta,self->etaeta_Theta))		GMERR(-81);
